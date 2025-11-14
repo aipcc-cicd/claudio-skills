@@ -1,0 +1,76 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claudio-aipcc
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/part-of: aipcc-cicd
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: claudio-aipcc
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/part-of: aipcc-cicd
+rules:
+  # Tekton resources
+  - apiGroups: ["tekton.dev"]
+    resources: ["taskruns", "pipelineruns"]
+    verbs: ["get", "list", "watch"]
+
+  # Konflux Application API resources
+  - apiGroups: ["appstudio.redhat.com"]
+    resources: ["applications", "components", "snapshots"]
+    verbs: ["get", "list", "watch"]
+
+  # Enterprise Contract Policy resources
+  - apiGroups: ["appstudio.redhat.com"]
+    resources: ["enterprisecontractpolicies"]
+    verbs: ["get", "list", "watch"]
+
+  # Image Controller resources
+  - apiGroups: ["appstudio.redhat.com"]
+    resources: ["imagerepositories"]
+    verbs: ["get", "list", "watch"]
+
+  # Integration Service resources
+  - apiGroups: ["appstudio.redhat.com"]
+    resources: ["integrationtestscenarios"]
+    verbs: ["get", "list", "watch"]
+
+  # Release Service resources , "releaseserviceconfigs"
+  - apiGroups: ["appstudio.redhat.com"]
+    resources: ["releases", "releaseplans", "releaseplanadmissions"]
+    verbs: ["get", "list", "watch"]
+
+  # Mintmaker Dependency Management resources
+  # - apiGroups: ["appstudio.redhat.com"]
+  #   resources: ["dependencyupdatechecks"]
+  #   verbs: ["get", "list", "watch"]
+
+  # Project Controller resources
+  # - apiGroups: ["appstudio.redhat.com"]
+  #   resources: ["projects", "projectdevelopmentstreams", "projectdevelopmentstreamtemplates"]
+  #   verbs: ["get", "list", "watch"]
+
+  # Additional Konflux-related resources that may exist
+  # - apiGroups: ["appstudio.redhat.com"]
+  #   resources: ["*"]
+  #   verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: claudio-aipcc
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/part-of: aipcc-cicd
+subjects:
+- kind: ServiceAccount
+  name: claudio-aipcc
+roleRef:
+  kind: Role
+  name: claudio-aipcc
+  apiGroup: rbac.authorization.k8s.io
