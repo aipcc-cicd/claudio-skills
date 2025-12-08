@@ -1,0 +1,13 @@
+{
+"name": "claudio-skills",
+"owner": {
+"name": "Claudio"
+},
+"plugins": [
+{
+  "name": "claudio-plugin",
+  "source": "./claudio-plugin",
+  "description": "Plugin for Claudio"
+}
+]
+}

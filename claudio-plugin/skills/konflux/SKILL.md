@@ -1,0 +1,342 @@
+---
+name: konflux
+description: Work with Konflux releases and deployments. This skill should be used when the user asks about creating production releases, querying Konflux resources, or understanding the stage-to-production release workflow. Covers Release, Snapshot, and ReleasePlan concepts.
+allowed-tools: Bash(*/konflux/scripts/generate_release_yaml.py:*)
+---
+
+# Konflux
+
+## Overview
+
+Work with Konflux - a build and release platform based on OpenShift and Tekton.
+
+**Prerequisites:**
+- kubectl/kubernetes skill for querying resources
+- gitlab skill for resolving tags to commit SHAs
+- Release notes template in component repo (optional)
+
+**Scripts:**
+This skill includes helper scripts in `scripts/`.
+
+Reference scripts with relative paths:
+```bash
+scripts/generate_release_yaml.py [args]
+```
+
+**Core Concepts:**
+- **Release**: A deployment of a specific snapshot to an environment
+- **Snapshot**: A point-in-time collection of component versions
+- **ReleasePlan**: Defines how and where releases are deployed
+- **Application**: Group of related components
+- **Component**: Individual buildable/deployable unit
+
+## Release Workflow Pattern
+
+### Stage → Production Pattern
+
+Most Konflux applications follow this pattern:
+
+```
+1. Code merged → CI builds → Stage Release created
+2. Stage Release succeeds → Snapshot captured
+3. Manual Production Release created → References same Snapshot
+4. Production Release deploys to production environment
+```
+
+**Key principle:** Stage and Prod releases reference the same Snapshot for consistency.
+
+## Creating Production Releases
+
+### Workflow Overview
+
+**Starting point:** Git tag or commit SHA
+
+**Steps:**
+1. **Resolve tag to SHA** (if needed) - use gitlab skill
+2. **Find stage releases** by SHA label - use kubernetes skill
+3. **Filter to successful stage releases** - check status, report failures, continue with successes only
+4. **Generate production release YAMLs** - use the generate_release_yaml.py script for each successful release
+5. **Apply YAMLs to cluster** - deploy releases
+
+### Step 1: Resolve Tag to Commit SHA
+
+Use the **gitlab skill** to resolve a tag to its full 40-character commit SHA.
+
+### Step 2: Find Stage Releases by SHA
+
+Use the **kubernetes skill** to query releases with label selector:
+
+```bash
+kubectl get releases -n <namespace> \
+  -l "pac.test.appstudio.openshift.io/sha=<full-40-char-sha>"
+```
+
+**Important:**
+- Use the **full 40-character SHA** in the label selector
+- Stage releases are labeled with the commit SHA
+- Each component has its own release object
+
+### Step 3: Filter to Successful Stage Releases
+
+Use the **kubernetes skill** to check the status of each stage release.
+
+Check that `.status.conditions[type=Released].status = "True"` for each release.
+
+**Filter to only successful releases:**
+- Identify which stage releases have succeeded
+- Report any failed releases to the user
+- Continue with ONLY the successful releases for production YAML generation
+- Do NOT generate production YAMLs for failed stage releases
+
+### Step 4: Generate Production Release YAMLs
+
+Use the provided script to generate prod release from a successful stage release:
+
+```bash
+scripts/generate_release_yaml.py \
+  --stage-release <stage-release-name> \
+  --version <semantic-version> \
+  --namespace <namespace> \
+  --release-notes-template .konflux/release_notes.yaml \
+  --output out/<component>-prod.yaml
+```
+
+**Script features:**
+- Extracts all metadata from stage release object
+- Derives variant from component name (e.g., "rocm" → "ROCm")
+- Applies release notes template with {version} and {variant} substitution
+- Generates production ReleasePlan from stage (stage → prod)
+- Deterministic YAML output
+
+**What it extracts from stage release:**
+- Component name from labels
+- Snapshot name from spec
+- Namespace from metadata
+- ReleasePlan (derives prod from stage)
+
+### Step 5: Deploy Production Releases
+
+Apply generated YAMLs:
+
+```bash
+kubectl apply -f out/
+```
+
+Monitor release status:
+
+```bash
+kubectl get releases -n <namespace> -w
+```
+
+## Release Notes Template
+
+### Template File Format
+
+Products should provide `.konflux/release_notes.yaml`:
+
+```yaml
+type: RHEA
+synopsis: "Product Name {version} ({variant})"
+description: "Product description"
+topic: "Product Name {version} ({variant}) is now available."
+references:
+  - https://example.com/product
+solution: ""
+```
+
+**Template variables:**
+- `{version}`: Provided via `--version` argument (e.g., "1.2.0")
+- `{variant}`: Derived from component name pattern matching
+
+**Variant detection:**
+The script matches component name patterns to derive variants. Configure the variant_map in the script for your product's component naming patterns.
+
+**Without template:**
+- Script still works
+- Production release created without `spec.data.releaseNotes`
+- Useful for stage releases or internal testing
+
+## Release Object Structure
+
+### Production Release with Notes
+
+Generated by the script from a stage release:
+
+```yaml
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: Release
+metadata:
+  name: <component>-<version-dashes>-prod-1
+  namespace: <namespace>
+spec:
+  gracePeriodDays: 365
+  releasePlan: <app>-prod
+  snapshot: <snapshot-name>
+  data:
+    releaseNotes:
+      type: RHEA
+      synopsis: Product Name 1.2.0 (Variant)
+      description: Product description
+      topic: Product Name 1.2.0 (Variant) is now available.
+      references:
+        - https://example.com/product
+      solution: ''
+```
+
+## Naming Conventions
+
+### Release Names
+
+Pattern: `<component>-<version>-<env>-<seq>`
+
+**Example:** `my-component-1-2-0-prod-1`
+
+Components:
+- `my-component`: Component name
+- `1-2-0`: Version (dots replaced with dashes)
+- `prod`: Environment (stage/prod)
+- `1`: Sequence number
+
+### ReleasePlan Names
+
+Common pattern: `<app-name>-<env>[-<version>]`
+
+**Examples:**
+- Stage: `app-stage` or `app-stage-1-0`
+- Prod: `app-prod` or `app-prod-1-0`
+
+## Querying Releases
+
+Use the **kubernetes skill** for all kubectl operations.
+
+**Key Konflux-specific label:**
+- Find releases by commit SHA: `pac.test.appstudio.openshift.io/sha=<full-40-char-sha>`
+
+**Useful fields:**
+- Component: `.metadata.labels["appstudio.openshift.io/component"]`
+- Snapshot: `.spec.snapshot`
+- ReleasePlan: `.spec.releasePlan`
+- Status: `.status.conditions[type=Released].status`
+- Image URLs: `.status.artifacts.images[].urls[]`
+
+## Common Patterns
+
+### Multi-Component Release
+
+For applications with multiple components:
+
+1. Resolve tag to SHA (once)
+2. Query all stage releases with that SHA
+3. For each successful stage release:
+   - Run script with --stage-release and --version
+   - Generate prod YAML
+4. Create output directory with all YAMLs
+5. Generate summary document
+
+**Example directory structure:**
+```
+out/
+├── component-1-prod.yaml
+├── component-2-prod.yaml
+├── component-3-prod.yaml
+└── RELEASE_SUMMARY.md
+```
+
+### Release Summary Document
+
+Include in summary:
+- Release date
+- Git commit SHA and URL
+- Component status table
+- Stage release information
+- Generated YAML filenames
+- Deployment instructions
+- Verification steps
+
+### Component Filtering
+
+Support optional component filtering:
+
+**User provides:** `variant1,variant2,variant3`
+
+**Workflow:**
+1. Query all stage releases by SHA
+2. Extract component names from labels
+3. Match against variant patterns
+4. Generate YAMLs only for matched components
+
+**Component extraction:**
+```
+Label: appstudio.openshift.io/component = "my-component-variant-1-0"
+Extract variant pattern from component name
+```
+
+## Error Handling
+
+**Tag not found:**
+- Verify tag exists in GitLab
+- Check tag name capitalization
+- Try using commit SHA directly
+
+**No stage releases found:**
+- Verify SHA is correct (full 40 characters)
+- Check if stage releases have completed
+- Verify namespace is correct
+
+**Stage release failed:**
+- Check PipelineRun logs
+- Do NOT create production releases for failed components
+- Report failure to user
+- Continue with successful releases only
+
+**Variant not recognized:**
+- Component name doesn't match known patterns
+- Variant will be "Unknown"
+- May need to update variant_map in script
+
+## Integration with Other Skills
+
+**gitlab skill:**
+- Resolve tags to commit SHAs
+- Get commit details and metadata
+
+**kubernetes skill:**
+- Query releases with label selectors
+- Extract release status and fields
+- Monitor release progress
+
+**konflux skill (this):**
+- Understand release concepts
+- Generate release YAMLs
+- Orchestrate multi-component releases
+
+## Best Practices
+
+**Always use full SHAs:**
+- Label selectors require full 40-character SHAs
+- Short SHAs won't match labels
+
+**Verify before generating:**
+- All stage releases must succeed
+- Snapshots must be captured
+- ReleasePlans must exist
+
+**Use release notes templates:**
+- Store `.konflux/release_notes.yaml` in component repos
+- Teams own their release documentation
+- Easy to update without changing automation
+
+**Generate summaries:**
+- Document what was released
+- Include verification steps
+
+## Dependencies
+
+**Required:**
+- `kubectl` - Kubernetes operations (via kubernetes skill)
+- `jq` - JSON parsing
+- `python3` - For YAML generation script
+
+**Optional:**
+- `glab` - GitLab operations (via gitlab skill)
+- `.konflux/release_notes.yaml` - Release notes template in component repo
