@@ -1,7 +1,6 @@
 ---
 name: konflux
 description: Work with Konflux releases and deployments. This skill should be used when the user asks about creating production releases, querying Konflux resources, or understanding the stage-to-production release workflow. Covers Release, Snapshot, and ReleasePlan concepts.
-allowed-tools: Bash(*/konflux/scripts/generate_release_yaml.py:*)
 ---
 
 # Konflux
@@ -13,15 +12,22 @@ Work with Konflux - a build and release platform based on OpenShift and Tekton.
 **Prerequisites:**
 - kubectl/kubernetes skill for querying resources
 - gitlab skill for resolving tags to commit SHAs
-- Release notes template in component repo (optional)
+- Release notes template YAML file (required for production releases)
 
 **Scripts:**
 This skill includes helper scripts in `scripts/`.
 
-Reference scripts with relative paths:
+Execute scripts using the full path constructed from skill path + relative path:
 ```bash
-scripts/generate_release_yaml.py [args]
+{skill_path}/scripts/generate_release_yaml.py [args]
 ```
+
+**Path Construction:**
+- When the skill is invoked, you have access to the skill path
+- Join the skill path with the relative script path: `scripts/generate_release_yaml.py`
+- Example: If skill path is `/home/user/.claude/skills/konflux`, then script path is `/home/user/.claude/skills/konflux/scripts/generate_release_yaml.py`
+
+**IMPORTANT:** When executing scripts, MUST construct the full path from skill path, use single-line commands with NO line breaks, and call the script directly (not via `python`). See Step 4 for detailed execution requirements.
 
 **Core Concepts:**
 - **Release**: A deployment of a specific snapshot to an environment
@@ -55,7 +61,7 @@ Most Konflux applications follow this pattern:
 1. **Resolve tag to SHA** (if needed) - use gitlab skill
 2. **Find stage releases** by SHA label - use kubernetes skill
 3. **Filter to successful stage releases** - check status, report failures, continue with successes only
-4. **Generate production release YAMLs** - use the generate_release_yaml.py script for each successful release
+4. **Generate production release YAMLs** - use `{skill_path}/scripts/generate_release_yaml.py` for each successful release
 5. **Apply YAMLs to cluster** - deploy releases
 
 ### Step 1: Resolve Tag to Commit SHA
@@ -90,29 +96,68 @@ Check that `.status.conditions[type=Released].status = "True"` for each release.
 
 ### Step 4: Generate Production Release YAMLs
 
-Use the provided script to generate prod release from a successful stage release:
+Use the provided script to generate prod release YAML with all parameters provided directly:
 
 ```bash
-scripts/generate_release_yaml.py \
-  --stage-release <stage-release-name> \
+{skill_path}/scripts/generate_release_yaml.py \
+  --component <component-name> \
   --version <semantic-version> \
+  --snapshot <snapshot-name> \
+  --release-plan <prod-release-plan> \
+  --release-name <prod-release-name> \
+  --accelerator <accelerator-or-variant> \
   --namespace <namespace> \
-  --release-notes-template .konflux/release_notes.yaml \
+  --release-notes-template <path-to-template.yaml> \
+  --release-type <RHEA|RHSA> \
+  --cves-file <path-to-cves-file> \
   --output out/<component>-prod.yaml
 ```
 
+**CRITICAL EXECUTION REQUIREMENTS:**
+- **MUST construct the full path: `{skill_path}/scripts/generate_release_yaml.py`**
+- **MUST execute as a single-line command with NO line breaks**
+- **MUST execute the script directly via Bash - DO NOT use `python` or `python3` prefix**
+- Line breaks in the command will cause permission errors
+- The script is executable and has a shebang, so call it directly
+- When the skill is invoked, you have access to the skill path - join it with `scripts/generate_release_yaml.py`
+
+**Correct:**
+```bash
+{skill_path}/scripts/generate_release_yaml.py --component cuda-ubi9 --version 3.2.5 --snapshot my-app-78c7f --release-plan my-product-ubi9-prod --release-name my-product-cuda-ubi9-3-2-5-prod-4 --accelerator CUDA --namespace my-namespace --release-notes-template /tmp/ga-rhea.yaml --release-type RHEA --output out/release.yaml
+```
+
+**Incorrect:**
+```bash
+# DO NOT USE - Has line breaks
+{skill_path}/scripts/generate_release_yaml.py \
+  --component cuda-ubi9 \
+  --version 3.2.5
+
+# DO NOT USE - Uses python prefix
+python {skill_path}/scripts/generate_release_yaml.py --component cuda-ubi9 ...
+
+# DO NOT USE - Using relative path without skill_path
+scripts/generate_release_yaml.py --component cuda-ubi9 ...
+```
+
 **Script features:**
-- Extracts all metadata from stage release object
-- Derives variant from component name (e.g., "rocm" → "ROCm")
-- Applies release notes template with {version} and {variant} substitution
-- Generates production ReleasePlan from stage (stage → prod)
+- Takes all parameters directly (no kubectl queries)
+- Applies release notes template with {version} and {accelerator} substitutions
+- Completely generic - no product or release type awareness
+- User controls everything via parameters (ReleasePlan, template, etc.)
+- Supports RHSA releases with CVE lists via `--cves-file`
 - Deterministic YAML output
 
-**What it extracts from stage release:**
-- Component name from labels
-- Snapshot name from spec
-- Namespace from metadata
-- ReleasePlan (derives prod from stage)
+**Required parameters:**
+- Component name - for CVE component field
+- Snapshot name - from successful stage release
+- Release plan name - **user chooses appropriate plan (GA vs TP have different plans)**
+- Release name - must be unique
+- Accelerator/variant - for template substitution
+- Semantic version - for template substitution
+- Release notes template - **user chooses appropriate template (GA vs TP have different templates)**
+
+**Important:** The script doesn't distinguish between GA and Tech Preview releases. The user is responsible for passing the correct ReleasePlan name and template file for their release type.
 
 ### Step 5: Deploy Production Releases
 
@@ -128,60 +173,65 @@ Monitor release status:
 kubectl get releases -n <namespace> -w
 ```
 
-## Release Notes Template
+## Release Notes Templates
 
 ### Template File Format
 
-Products should provide `.konflux/release_notes.yaml`:
+Products provide release notes templates as YAML files. Different release types require different templates and ReleasePlans:
 
+**Example GA Template (ga-rhea.yaml):**
 ```yaml
 type: RHEA
-synopsis: "Product Name {version} ({variant})"
-description: "Product description"
-topic: "Product Name {version} ({variant}) is now available."
+synopsis: "Product Name {version} ({accelerator})"
+description: "Product Name"
+topic: "Product Name {version} ({accelerator}) is now available."
 references:
   - https://example.com/product
 solution: ""
 ```
+*For GA releases, also use: `--release-plan my-product-ga-prod`*
 
-**Template variables:**
-- `{version}`: Provided via `--version` argument (e.g., "1.2.0")
-- `{variant}`: Derived from component name pattern matching
-
-**Variant detection:**
-The script matches component name patterns to derive variants. Configure the variant_map in the script for your product's component naming patterns.
-
-**Without template:**
-- Script still works
-- Production release created without `spec.data.releaseNotes`
-- Useful for stage releases or internal testing
-
-## Release Object Structure
-
-### Production Release with Notes
-
-Generated by the script from a stage release:
-
+**Example Tech Preview Template (tp-rhea.yaml):**
 ```yaml
-apiVersion: appstudio.redhat.com/v1alpha1
-kind: Release
-metadata:
-  name: <component>-<version-dashes>-prod-1
-  namespace: <namespace>
-spec:
-  gracePeriodDays: 365
-  releasePlan: <app>-prod
-  snapshot: <snapshot-name>
-  data:
-    releaseNotes:
-      type: RHEA
-      synopsis: Product Name 1.2.0 (Variant)
-      description: Product description
-      topic: Product Name 1.2.0 (Variant) is now available.
-      references:
-        - https://example.com/product
-      solution: ''
+type: RHEA
+synopsis: "Product Name Tech Preview {version} ({accelerator})"
+description: "Product Name Tech Preview"
+topic: "Product Name Tech Preview {version} ({accelerator}) is now available."
+references:
+  - https://example.com/product
+solution: ""
 ```
+*For TP releases, also use: `--release-plan my-product-tp-prod`*
+
+**Template Variables:**
+- `{version}`: Provided via `--version` argument (e.g., "3.2.5")
+- `{accelerator}`: Provided via `--accelerator` argument (e.g., "CUDA", "ROCm", "CPU")
+
+**Variable Substitution:**
+- The script replaces all `{version}` and `{accelerator}` placeholders in template strings
+- Works recursively through all string values in the template
+
+**User Responsibility:**
+- Choose the correct template file for your release type
+- Choose the correct ReleasePlan name for your release type
+- Ensure template content and ReleasePlan match the intended release maturity level
+
+**Release Types:**
+- **RHEA** (default): Enhancement Advisory - standard feature releases
+- **RHSA**: Security Advisory - requires `--cves-file` parameter
+  - CVE file format: One CVE per line (CVE-YYYY-NNNNN)
+  - Comments starting with # are ignored
+  - Empty lines are skipped
+
+**Example Templates:**
+
+Create different templates based on release maturity and type:
+- `release-notes-ga-rhea.yaml` - GA enhancement advisory
+- `release-notes-ga-rhsa.yaml` - GA security advisory
+- `release-notes-tp-rhea.yaml` - Tech Preview enhancement advisory
+- `release-notes-tp-rhsa.yaml` - Tech Preview security advisory
+
+**Note:** The template content (synopsis, description, topic) should reflect whether the release is GA or Tech Preview. The `--release-type` parameter controls whether it's an RHEA or RHSA.
 
 ## Naming Conventions
 
@@ -227,11 +277,31 @@ For applications with multiple components:
 
 1. Resolve tag to SHA (once)
 2. Query all stage releases with that SHA
-3. For each successful stage release:
-   - Run script with --stage-release and --version
+3. Filter to successful releases only
+4. For each successful stage release:
+   - Extract component name and snapshot from stage release
+   - Determine accelerator/variant type from component name
+   - Generate unique production release name
+   - **User determines release maturity (GA or TP)**
+   - Select appropriate template file based on maturity
+   - Select appropriate ReleasePlan name based on maturity
+   - Run script with all required parameters
    - Generate prod YAML
-4. Create output directory with all YAMLs
-5. Generate summary document
+5. Create output directory with all YAMLs
+6. Generate summary document
+
+**Parameter Coordination:**
+The user must ensure these parameters align for the intended release:
+- **For GA releases:**
+  - Template: `ga-rhea.yaml` (or `ga-rhsa.yaml` for security)
+  - ReleasePlan: `my-product-ga-prod` (GA production plan)
+  - Release name should reflect GA maturity if needed
+- **For Tech Preview releases:**
+  - Template: `tp-rhea.yaml` (or `tp-rhsa.yaml` for security)
+  - ReleasePlan: `my-product-tp-prod` (TP production plan)
+  - Release name should reflect TP maturity if needed
+- Use `--release-type RHEA` for enhancements, `--release-type RHSA` for security
+- Templates can be stored in a central location or per-component
 
 **Example directory structure:**
 ```
@@ -255,20 +325,20 @@ Include in summary:
 
 ### Component Filtering
 
-Support optional component filtering:
+Support optional component filtering by accelerator type:
 
-**User provides:** `variant1,variant2,variant3`
+**User provides:** `cuda,rocm,cpu` (accelerator types to include)
 
 **Workflow:**
 1. Query all stage releases by SHA
 2. Extract component names from labels
-3. Match against variant patterns
+3. Match against accelerator patterns in component names
 4. Generate YAMLs only for matched components
 
 **Component extraction:**
 ```
-Label: appstudio.openshift.io/component = "my-component-variant-1-0"
-Extract variant pattern from component name
+Label: appstudio.openshift.io/component = "my-component-cuda-ubi9"
+Extract accelerator type from component name (e.g., "cuda")
 ```
 
 ## Error Handling
@@ -289,10 +359,20 @@ Extract variant pattern from component name
 - Report failure to user
 - Continue with successful releases only
 
-**Variant not recognized:**
-- Component name doesn't match known patterns
-- Variant will be "Unknown"
-- May need to update variant_map in script
+**Template file not found:**
+- Verify template file path is correct
+- Check file exists and is readable
+- Ensure template is valid YAML
+
+**Template parsing error:**
+- Validate YAML syntax in template
+- Check for proper indentation
+- Ensure all fields are properly quoted if needed
+
+**CVE file not found:**
+- Verify file path is correct
+- Check file format (one CVE per line)
+- Ensure CVEs are in CVE-YYYY-NNNNN format
 
 ## Integration with Other Skills
 
@@ -319,12 +399,26 @@ Extract variant pattern from component name
 **Verify before generating:**
 - All stage releases must succeed
 - Snapshots must be captured
-- ReleasePlans must exist
+- Production ReleasePlans must exist for both GA and TP (if releasing both)
+
+**Coordinate parameters correctly:**
+- **GA releases require:** GA template + GA ReleasePlan name
+- **TP releases require:** TP template + TP ReleasePlan name
+- The script has no awareness of release type - you control this via parameter selection
+- Double-check template and ReleasePlan match before generating
 
 **Use release notes templates:**
-- Store `.konflux/release_notes.yaml` in component repos
-- Teams own their release documentation
-- Easy to update without changing automation
+- Store template files in version control
+- Create separate templates for GA vs Tech Preview releases
+- Create separate templates for RHEA vs RHSA if content differs
+- Use `{version}` and `{accelerator}` placeholders for dynamic content
+- Test templates before using in production
+
+**Understand release types:**
+- Use RHEA for feature/enhancement releases (via `--release-type RHEA`)
+- Use RHSA for security updates with CVE list (via `--release-type RHSA`)
+- Provide CVE file in correct format for RHSA
+- The `type` field in template can be overridden by `--release-type` argument
 
 **Generate summaries:**
 - Document what was released
@@ -335,8 +429,14 @@ Extract variant pattern from component name
 **Required:**
 - `kubectl` - Kubernetes operations (via kubernetes skill)
 - `jq` - JSON parsing
-- `python3` - For YAML generation script
+- `python3` - For YAML generation script (Python 3.6+)
+- `PyYAML` - Python YAML library
 
 **Optional:**
 - `glab` - GitLab operations (via gitlab skill)
-- `.konflux/release_notes.yaml` - Release notes template in component repo
+
+**Script Scope:**
+- The `generate_release_yaml.py` script is generic and product-agnostic
+- Product-specific release notes are defined in template files
+- Each product can maintain their own template files
+- Templates use `{version}` and `{accelerator}` for dynamic substitution
