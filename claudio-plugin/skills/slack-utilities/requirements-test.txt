@@ -1,0 +1,10 @@
+# Test dependencies for slack-utilities scripts
+
+# Include runtime dependencies
+-r requirements.txt
+
+# Testing framework
+pytest>=7.4.0
+
+# Mocking
+responses>=0.23.0

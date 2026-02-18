@@ -1,1 +1,11 @@
 .claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/

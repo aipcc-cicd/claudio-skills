@@ -1,0 +1,4 @@
+# Dependencies for Slack Utilities scripts
+
+# HTTP requests (for Slack API post_message.py)
+requests>=2.31.0
