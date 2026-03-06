@@ -147,7 +147,7 @@ class TestFetchMessages:
         assert mock_get.call_count == 2
 
     def test_fetch_messages_missing_tokens(self):
-        with pytest.raises(ValueError, match="SLACK_MCP.*must be set"):
+        with pytest.raises(ValueError, match="SLACK.*must be set"):
             fetch_messages(channel_id="C123", time_window="65m", output_path="/tmp/test.json")
 
     @patch('fetch_messages.requests.get')
@@ -204,7 +204,7 @@ class TestFetchThreadReplies:
             )
 
     def test_fetch_thread_replies_missing_tokens(self):
-        with pytest.raises(ValueError, match="SLACK_MCP.*must be set"):
+        with pytest.raises(ValueError, match="SLACK.*must be set"):
             fetch_thread_replies(
                 channel_id="C123", thread_ts="1234567890.000000",
                 output_path="/tmp/thread.json",
@@ -233,7 +233,7 @@ class TestPostMessage:
         mock_response.raise_for_status = Mock()
         mock_post.return_value = mock_response
 
-        result = post_message(channel_id="C123", message_text="Test", xoxc_token="xoxc-test")
+        result = post_message(channel_id="C123", message_text="Test", xoxc_token="xoxc-test", xoxd_token="xoxd-test")
         assert result["ok"] is True
         assert "ts" in result
 
@@ -259,10 +259,10 @@ class TestPostMessage:
             mock_post.return_value = mock_response
 
         with pytest.raises(exc_type, match=match):
-            post_message(channel_id="C123", message_text="Test", xoxc_token="xoxc-test")
+            post_message(channel_id="C123", message_text="Test", xoxc_token="xoxc-test", xoxd_token="xoxd-test")
 
     def test_post_message_missing_token(self):
-        with pytest.raises(ValueError, match="SLACK_MCP_XOXC_TOKEN must be set"):
+        with pytest.raises(ValueError, match="SLACK.*must be set"):
             post_message(channel_id="C123", message_text="Test")
 
 
@@ -291,7 +291,7 @@ class TestFetchMessagesMain:
                 assert fetch_messages_main() == 0
 
     @pytest.mark.parametrize("side_effect, exit_code", [
-        (ValueError("SLACK_MCP_XOXC_TOKEN must be set"), 4),
+        (ValueError("SLACK_XOXC_TOKEN must be set"), 4),
         (RuntimeError("Slack API error"), 2),
     ])
     @patch('sys.argv', ['fetch_messages.py', 'C123', '65m', '/tmp/out.json'])
@@ -331,7 +331,7 @@ class TestPostMessageMain:
         assert post_message_main() == 0
 
     @pytest.mark.parametrize("side_effect, exit_code", [
-        (ValueError("SLACK_MCP_XOXC_TOKEN must be set"), 4),
+        (ValueError("SLACK_XOXC_TOKEN and SLACK_XOXD_TOKEN must be set"), 4),
         (RuntimeError("Slack API error"), 2),
     ])
     @patch('sys.argv', ['post_message.py', 'C123', 'Hello'])

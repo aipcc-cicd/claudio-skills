@@ -1,7 +1,7 @@
 ---
 name: slack-utilities
 description: Generic Slack utilities for fetching messages, thread replies, posting messages, and converting timestamps using Slack Web API.
-compatibility: Requires SLACK_MCP_XOXC_TOKEN and SLACK_MCP_XOXD_TOKEN environment variables
+compatibility: Requires SLACK_XOXC_TOKEN and SLACK_XOXD_TOKEN environment variables
 allowed-tools: Bash
 ---
 
@@ -21,8 +21,8 @@ This skill provides deterministic scripts for Slack operations:
 
 **Required:**
 - Environment variables:
-  - `SLACK_MCP_XOXC_TOKEN` - Slack cookie token
-  - `SLACK_MCP_XOXD_TOKEN` - Slack workspace token
+  - `SLACK_XOXC_TOKEN` - Slack cookie token
+  - `SLACK_XOXD_TOKEN` - Slack workspace token
   - `SLACK_WORKSPACE` - Slack workspace name (default: "redhat")
 - Python 3.x with `requests` library (`pip3 install -r requirements.txt`)
 
@@ -209,7 +209,7 @@ Slack timestamps are Unix timestamps (seconds since epoch) with microseconds:
 ## Usage Notes
 
 **Authentication:**
-- All scripts that interact with Slack require `SLACK_MCP_XOXC_TOKEN` and `SLACK_MCP_XOXD_TOKEN`
+- All scripts that interact with Slack require `SLACK_XOXC_TOKEN` and `SLACK_XOXD_TOKEN`
 - Tokens can be provided via environment variables or command-line arguments
 - Default workspace is "redhat" (can be overridden with `SLACK_WORKSPACE`)
 
@@ -290,7 +290,7 @@ done
 ## Troubleshooting
 
 **Authentication errors (exit code 4):**
-- Check that `SLACK_MCP_XOXC_TOKEN` and `SLACK_MCP_XOXD_TOKEN` are set
+- Check that `SLACK_XOXC_TOKEN` and `SLACK_XOXD_TOKEN` are set
 - Verify tokens are valid and not expired
 - Ensure workspace name matches your Slack workspace
 

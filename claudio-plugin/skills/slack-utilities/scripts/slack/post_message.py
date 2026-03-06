@@ -23,14 +23,16 @@ import requests
 def post_message(
     channel_id: str,
     message_text: str,
-    xoxc_token: Optional[str] = None
+    xoxc_token: Optional[str] = None,
+    xoxd_token: Optional[str] = None
 ) -> dict:
     """Post message to Slack channel using Slack API.
 
     Args:
         channel_id: Slack channel ID (e.g., "C09G0CMTUNA")
         message_text: Message text to post
-        xoxc_token: Slack xoxc token (or from env SLACK_MCP_XOXC_TOKEN)
+        xoxc_token: Slack xoxc token (or from env SLACK_XOXC_TOKEN)
+        xoxd_token: Slack xoxd token (or from env SLACK_XOXD_TOKEN)
 
     Returns:
         API response as dictionary
@@ -39,18 +41,22 @@ def post_message(
         RuntimeError: If API call fails
         ValueError: If authentication token is missing
     """
-    # Get token from environment if not provided
-    token = xoxc_token or os.getenv('SLACK_MCP_XOXC_TOKEN')
+    # Get tokens from environment if not provided
+    xoxc = xoxc_token or os.getenv('SLACK_XOXC_TOKEN')
+    xoxd = xoxd_token or os.getenv('SLACK_XOXD_TOKEN')
 
-    if not token:
-        raise ValueError("SLACK_MCP_XOXC_TOKEN must be set")
+    if not xoxc or not xoxd:
+        raise ValueError(
+            "SLACK_XOXC_TOKEN and SLACK_XOXD_TOKEN must be set"
+        )
 
     print(f"Posting message to channel {channel_id}...", file=sys.stderr)
 
     # Prepare request
     url = "https://slack.com/api/chat.postMessage"
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": f"Bearer {xoxc}",
+        "Cookie": f"d={xoxd}",
         "Content-Type": "application/json",
     }
     payload = {

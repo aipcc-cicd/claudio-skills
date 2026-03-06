@@ -35,8 +35,8 @@ def fetch_thread_replies(
         channel_id: Slack channel ID (e.g., "C08LVA9E1SS")
         thread_ts: Thread timestamp (e.g., "1704897000.123456")
         output_path: Path to write JSON output
-        xoxc_token: Slack xoxc token (or from env SLACK_MCP_XOXC_TOKEN)
-        xoxd_token: Slack xoxd token (or from env SLACK_MCP_XOXD_TOKEN)
+        xoxc_token: Slack xoxc token (or from env SLACK_XOXC_TOKEN)
+        xoxd_token: Slack xoxd token (or from env SLACK_XOXD_TOKEN)
         workspace: Slack workspace name
 
     Returns:
@@ -47,12 +47,12 @@ def fetch_thread_replies(
         ValueError: If authentication tokens are missing
     """
     # Get tokens from environment if not provided
-    xoxc = xoxc_token or os.getenv('SLACK_MCP_XOXC_TOKEN')
-    xoxd = xoxd_token or os.getenv('SLACK_MCP_XOXD_TOKEN')
+    xoxc = xoxc_token or os.getenv('SLACK_XOXC_TOKEN')
+    xoxd = xoxd_token or os.getenv('SLACK_XOXD_TOKEN')
 
     if not xoxc or not xoxd:
         raise ValueError(
-            "SLACK_MCP_XOXC_TOKEN and SLACK_MCP_XOXD_TOKEN must be set"
+            "SLACK_XOXC_TOKEN and SLACK_XOXD_TOKEN must be set"
         )
 
     print(
