@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      skills: ${{ steps.find.outputs.skills }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Discover skills with tests
+        id: find
+        run: |
+          skills=$(find claudio-plugin/skills -type d -name tests \
+            | sed 's|/tests$||' \
+            | jq -R . | jq -sc .)
+          echo "skills=$skills" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: discover
+    if: needs.discover.outputs.skills != '[]'
+    runs-on: ubuntu-latest
+    container:
+      image: registry.access.redhat.com/ubi10/python-312-minimal:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        skill: ${{ fromJson(needs.discover.outputs.skills) }}
+    name: Test ${{ matrix.skill }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: |
+          if [ -f "${{ matrix.skill }}/requirements-test.txt" ]; then
+            pip install -r "${{ matrix.skill }}/requirements-test.txt" -q
+          fi
+      - name: Run pytest
+        working-directory: "${{ matrix.skill }}"
+        run: python -m pytest tests/ -v
