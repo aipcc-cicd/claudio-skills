@@ -7,7 +7,7 @@ A Claude Code plugin that extends Claude with specialized skills for DevOps and 
 
 ## Overview
 
-Claudio Skills Plugin provides four production-ready skills designed to streamline interactions with GitLab CI/CD, Konflux, AWS CloudWatch Logs, and Slack. Each skill provides Claude Code with domain-specific capabilities, allowing you to leverage Claude as an intelligent assistant for complex DevOps tasks.
+Claudio Skills Plugin provides five production-ready skills designed to streamline interactions with GitLab CI/CD, Konflux, AWS CloudWatch Logs, Slack, and release changelog generation. Each skill provides Claude Code with domain-specific capabilities, allowing you to leverage Claude as an intelligent assistant for complex DevOps tasks.
 
 ## Features
 
@@ -15,6 +15,7 @@ Claudio Skills Plugin provides four production-ready skills designed to streamli
 - **Konflux Release Orchestration** - Automate stage-to-production release workflows on the Konflux platform
 - **AWS Log Analysis** - Troubleshoot and analyze CloudWatch Logs with advanced querying
 - **Slack Utilities** - Search messages, post updates, and interact with Slack workspaces
+- **Release Delta Generation** - Generate comprehensive release changelogs between AIPCC Wheels Builder versions with customizable sections
 
 ## Skills
 
@@ -98,6 +99,29 @@ it should be something similar to `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/5
 
 Disclaimer, the first time you reuse those Tokens you will probably be signed off as precaution, the second time you sign in the tokens should last.
 
+### 5. Release Delta Skill
+
+Generate comprehensive release changelog documentation between two versions of the **AIPCC Wheels Builder** repository (`git@gitlab.com:redhat/rhel-ai/wheels/builder.git`).
+
+**Use Cases:**
+- Generate full Builder release changelogs with all details
+- Extract specific sections (highlights, upgrade notes, JIRA issues)
+- Create executive summaries for Product Owners and sprint reporting
+- Document release impact analysis for Builder releases
+- Track contributors and release metrics across Builder versions
+
+**Key Features:**
+- Customizable section filtering (header, timeline, highlights, releases, summary, impact, jira, upgrade, contributors, references)
+- Git-based data collection (tags, commits, release notes)
+- Comprehensive release metrics and JIRA ticket tracking
+- Markdown output suitable for documentation and reporting
+- Supports partial reports for quick stakeholder updates
+
+**Section Options:**
+- `--sections highlights` - Executive summary only
+- `--sections header,timeline,highlights,impact` - Executive overview
+- `--sections all` - Full comprehensive report (default)
+
 ## Installation
 
 ### Prerequisites
@@ -116,6 +140,7 @@ Each skill manages its own dependencies through installer scripts in `claudio-pl
 | Konflux Release | `kubectl`, `glab`, `skopeo`, `python3` + PyYAML, `jq` | `kubectl`, `skopeo`, `jq`, PyYAML |
 | AWS Log Analyzer | `aws` CLI v2, `jq` | Both |
 | Slack Utilities | `curl`, `jq`, `python3` + requests | `jq`, requests |
+| Release Delta | `git`, `glab` | None (uses system git) |
 
 **Authentication:**
 - GitLab: Authenticate with `glab auth login` before using (required for GitLab Job Analyzer and Konflux Release)
@@ -231,9 +256,11 @@ claudio-plugin/
     ├── aws-log-analyzer/
     │   ├── SKILL.md             # AWS CloudWatch Logs analysis skill
     │   └── scripts/             # Log analysis scripts
-    └── slack-utilities/
-        ├── SKILL.md             # Slack Web API skill
-        └── scripts/             # Slack interaction scripts
+    ├── slack-utilities/
+    │   ├── SKILL.md             # Slack Web API skill
+    │   └── scripts/             # Slack interaction scripts
+    └── release-delta/
+        └── SKILL.md             # Release changelog generation skill
 ```
 
 ## Tool Management
@@ -302,6 +329,7 @@ Each skill includes its own test scenarios. Run skill-specific scripts directly 
 - [Konflux Release Skill](claudio-plugin/skills/konflux-release/SKILL.md)
 - [AWS Log Analyzer Skill](claudio-plugin/skills/aws-log-analyzer/SKILL.md)
 - [Slack Utilities Skill](claudio-plugin/skills/slack-utilities/SKILL.md)
+- [Release Delta Skill](claudio-plugin/skills/release-delta/SKILL.md)
 
 ## Contributing
 
