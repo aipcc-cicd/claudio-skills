@@ -11,6 +11,7 @@ This plugin enables Claude Code to:
 - **Analyze GitLab CI/CD job failures** using structured scripts for pipeline debugging
 - **Orchestrate Konflux production releases** with self-contained stage-to-production workflows
 - **Troubleshoot and analyze AWS CloudWatch Logs** for application debugging and monitoring
+- **Create and protect GitLab branches** for release workflows and branch management
 
 These skills allow you to leverage Claude as an intelligent assistant for complex DevOps tasks, from querying merge requests to deploying production releases and troubleshooting application issues across multiple components.
 
@@ -51,14 +52,18 @@ claudio-plugin/
     │   ├── SKILL.md             # Konflux release workflow skill
     │   └── scripts/
     │       └── generate_release_yaml.py  # Release YAML generator
-    └── aws-log-analyzer/
-        ├── SKILL.md             # AWS CloudWatch Logs troubleshooting skill
+    ├── aws-log-analyzer/
+    │   ├── SKILL.md             # AWS CloudWatch Logs troubleshooting skill
+    │   └── scripts/
+    │       ├── analyze_errors.sh        # Error analysis
+    │       ├── find_recent_errors.sh    # Recent error search
+    │       ├── run_insights_query.sh    # Custom Insights queries
+    │       ├── trace_request.sh         # Cross-service request tracing
+    │       └── tail_logs.sh             # Real-time log monitoring
+    └── gitlab-branch-manager/
+        ├── SKILL.md             # GitLab branch creation and protection skill
         └── scripts/
-            ├── analyze_errors.sh        # Error analysis
-            ├── find_recent_errors.sh    # Recent error search
-            ├── run_insights_query.sh    # Custom Insights queries
-            ├── trace_request.sh         # Cross-service request tracing
-            └── tail_logs.sh             # Real-time log monitoring
+            └── create_and_protect_branch.sh  # Branch creation + protection
 ```
 
 ## Tools Management
@@ -313,9 +318,30 @@ When a new version is released, Renovate automatically creates a PR to update th
 - Pretty-printing and JSON parsing with jq
 - Helper scripts for common operations
 
+### 4. GitLab Branch Manager Skill
+
+**Purpose:** Create and protect GitLab branches for release workflows and branch management.
+
+**Use cases:**
+- Create release branches from main or a specific tag/ref
+- Apply branch protection rules (push, merge, force push, unprotect restrictions)
+- Verify branch protection configuration
+
+**Key features:**
+- Smart repo resolution (short name, full path, or URL)
+- Extensible protection rules via parallel arrays + generic `--rule KEY=VALUE` flag
+- Idempotent protection checks (matching rules succeed, differing rules fail)
+- Dry-run mode for previewing actions
+- JSON and human-readable output
+
 ## Prerequisites
 
 Each skill has its own dependencies:
+
+**GitLab Branch Manager Skill:**
+- `glab` - GitLab CLI tool
+- User already authenticated
+- `jq` for JSON parsing
 
 **GitLab Job Analyzer Skill:**
 - `glab` - GitLab CLI tool (used internally by scripts)

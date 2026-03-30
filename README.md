@@ -7,7 +7,7 @@ A Claude Code plugin that extends Claude with specialized skills for DevOps and 
 
 ## Overview
 
-Claudio Skills Plugin provides four production-ready skills designed to streamline interactions with GitLab CI/CD, Konflux, AWS CloudWatch Logs, and Slack. Each skill provides Claude Code with domain-specific capabilities, allowing you to leverage Claude as an intelligent assistant for complex DevOps tasks.
+Claudio Skills Plugin provides five production-ready skills designed to streamline interactions with GitLab CI/CD, Konflux, AWS CloudWatch Logs, Slack, and GitLab branch management. Each skill provides Claude Code with domain-specific capabilities, allowing you to leverage Claude as an intelligent assistant for complex DevOps tasks.
 
 ## Features
 
@@ -15,6 +15,7 @@ Claudio Skills Plugin provides four production-ready skills designed to streamli
 - **Konflux Release Orchestration** - Automate stage-to-production release workflows on the Konflux platform
 - **AWS Log Analysis** - Troubleshoot and analyze CloudWatch Logs with advanced querying
 - **Slack Utilities** - Search messages, post updates, and interact with Slack workspaces
+- **GitLab Branch Management** - Create and protect GitLab branches with configurable protection rules
 
 ## Skills
 
@@ -98,6 +99,23 @@ it should be something similar to `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/5
 
 Disclaimer, the first time you reuse those Tokens you will probably be signed off as precaution, the second time you sign in the tokens should last.
 
+### 5. GitLab Branch Manager Skill
+
+Create and protect GitLab branches for release workflows and branch management.
+
+**Use Cases:**
+- Create release branches from main or a specific tag/ref
+- Apply branch protection rules (push, merge, force push, unprotect restrictions)
+- Verify branch protection configuration
+
+**Key Features:**
+- Smart repo resolution (short name, full path, or URL)
+- Extensible protection rules with generic `--rule KEY=VALUE` override
+- Idempotent protection checks (matching rules succeed, differing rules fail)
+- Dry-run mode for previewing actions
+- JSON and human-readable output
+- Compatible with bash 3.2+ (macOS, RHEL, Ubuntu, Alpine)
+
 ## Installation
 
 ### Prerequisites
@@ -116,9 +134,10 @@ Each skill manages its own dependencies through installer scripts in `claudio-pl
 | Konflux Release | `kubectl`, `glab`, `skopeo`, `python3` + PyYAML, `jq` | `kubectl`, `skopeo`, `jq`, PyYAML |
 | AWS Log Analyzer | `aws` CLI v2, `jq` | Both |
 | Slack Utilities | `curl`, `jq`, `python3` + requests | `jq`, requests |
+| GitLab Branch Manager | `glab`, `jq` | `jq` only |
 
 **Authentication:**
-- GitLab: Authenticate with `glab auth login` before using (required for GitLab Job Analyzer and Konflux Release)
+- GitLab: Authenticate with `glab auth login` before using (required for GitLab Job Analyzer, GitLab Branch Manager, and Konflux Release)
 - Kubernetes: Configure kubectl context with `kubectl config use-context` (required for Konflux Release)
 - AWS: Authenticate with AWS CLI (`aws configure`, SSO, or instance profile)
 - Slack: Configure API token (see skill documentation or MCP server integration)
@@ -153,6 +172,9 @@ Skills are invoked automatically by Claude Code when relevant to your request. Y
 
 # Slack operations
 "Search for messages about 'deployment' in #engineering"
+
+# Branch management
+"Create a branch release-1.5 on aipcc-claudio"
 ```
 
 ### Example Workflows
@@ -197,6 +219,20 @@ Claude will:
 2. Identify failure patterns by runner, stage, and error type
 3. Provide actionable insights
 
+#### Branch Management Workflow
+
+Using the GitLab Branch Manager skill:
+
+```
+"Create a branch release-1.5 on owner/repo from tag v1.4.0"
+```
+
+Claude will:
+1. Resolve the repository to its full GitLab project path
+2. Create the branch from the specified ref
+3. Apply protection rules (push blocked, merge by maintainers only, no force push, no unprotect)
+4. Return JSON result with branch and protection details
+
 ## Architecture
 
 ```
@@ -231,9 +267,13 @@ claudio-plugin/
     ├── aws-log-analyzer/
     │   ├── SKILL.md             # AWS CloudWatch Logs analysis skill
     │   └── scripts/             # Log analysis scripts
-    └── slack-utilities/
-        ├── SKILL.md             # Slack Web API skill
-        └── scripts/             # Slack interaction scripts
+    ├── slack-utilities/
+    │   ├── SKILL.md             # Slack Web API skill
+    │   └── scripts/             # Slack interaction scripts
+    └── gitlab-branch-manager/
+        ├── SKILL.md             # GitLab branch creation and protection skill
+        └── scripts/
+            └── create_and_protect_branch.sh
 ```
 
 ## Tool Management
@@ -302,6 +342,7 @@ Each skill includes its own test scenarios. Run skill-specific scripts directly 
 - [Konflux Release Skill](claudio-plugin/skills/konflux-release/SKILL.md)
 - [AWS Log Analyzer Skill](claudio-plugin/skills/aws-log-analyzer/SKILL.md)
 - [Slack Utilities Skill](claudio-plugin/skills/slack-utilities/SKILL.md)
+- [GitLab Branch Manager Skill](claudio-plugin/skills/gitlab-branch-manager/SKILL.md)
 
 ## Contributing
 
