@@ -24,7 +24,7 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 # This version is tracked by Renovate for automatic updates
 # renovate: datasource=github-releases depName=jqlang/jq
-JQ_VERSION="1.7.1"
+JQ_VERSION="1.8.1"
 
 # ============================================================================
 # CONFIGURATION
