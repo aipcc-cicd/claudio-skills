@@ -24,7 +24,7 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 # This version is tracked by Renovate for automatic updates
 # renovate: datasource=github-tags depName=aws/aws-cli
-AWS_CLI_VERSION="2.34.29"
+AWS_CLI_VERSION="2.34.30"
 
 # ============================================================================
 # CONFIGURATION
