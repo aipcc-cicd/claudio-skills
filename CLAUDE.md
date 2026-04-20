@@ -78,6 +78,14 @@ claudio-plugin/
                 ├── get_board.sh         # Discover boards for a project
                 ├── cve_tracker.sh       # CVE deduplication and release clustering
                 └── setup_auth.sh        # One-time acli authentication
+    └── renovate-pipelinerun/
+        ├── SKILL.md             # Renovate PipelineRun trigger and monitor skill
+            └── scripts/
+                ├── check_auth.sh        # OpenShift auth and namespace validation
+                ├── list_pipelines.sh    # List available Renovate pipelines
+                ├── start_pipeline.sh    # Start a PipelineRun with busy-check
+                ├── get_status.sh        # PipelineRun status and TaskRun summary
+                └── get_logs.sh          # Retrieve PipelineRun/TaskRun logs
 ```
 
 
@@ -148,6 +156,11 @@ source "$SCRIPT_DIR/../common.sh"
 - Installs skopeo via system package manager (dnf/apt/apk)
 - Used by: konflux-release skill
 - Supports: Linux (RHEL, Fedora, Ubuntu, Debian, Alpine)
+
+**tkn** (`tools/tkn/install.sh`)
+- Installs tkn (Tekton CLI)
+- Used by: renovate-pipelinerun skill
+- Supports: Linux x86_64, ARM64
 
 ### Adding New Tools
 
@@ -363,6 +376,25 @@ When a new version is released, Renovate automatically creates a PR to update th
 - Custom fields (priority, component, team, activity-type) applied via REST PATCH
 - CVE deduplication and release-date clustering via embedded jq analysis
 
+### 6. Renovate PipelineRun Skill
+
+**Purpose:** Trigger and monitor self-hosted Renovate PipelineRuns on OpenShift via Tekton.
+
+**Use cases:**
+- List available Renovate pipelines on the cluster
+- Start a PipelineRun for a specific pipeline with busy-checking
+- Check PipelineRun and TaskRun status
+- Retrieve logs from PipelineRuns and TaskRuns
+- View recent PipelineRun history
+
+**Key features:**
+- Cluster authentication validation before operations
+- Dynamic pipeline discovery (filters by `renovate-` prefix)
+- Busy-check logic matching the production CronJob behavior
+- JSON output for programmatic parsing
+- Configurable log line limits to avoid context overflow
+- Uses `tkn` and `kubectl` CLIs (both auto-installed)
+
 ## Prerequisites
 
 Each skill has its own dependencies:
@@ -394,6 +426,11 @@ Each skill has its own dependencies:
 - `JIRA_SITE` - Atlassian site hostname (e.g., `yourorg.atlassian.net` — no `https://` prefix)
 - `JIRA_TOKEN` - API token from Atlassian account settings → Security → API tokens
 - `JIRA_EMAIL` - Your Atlassian account email
+
+**Renovate PipelineRun Skill:**
+- `kubectl` - Kubernetes CLI (installed via `tools/kubectl/install.sh`)
+- `tkn` - Tekton CLI (installed via `tools/tkn/install.sh`)
+- `RENOVATE_NAMESPACE` - OpenShift namespace (defaults to `rhel-ai-cicd--renovate-runner`)
 
 ## Installation
 
