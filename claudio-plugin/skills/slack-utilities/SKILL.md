@@ -117,6 +117,44 @@ JSON array of thread messages including the parent message and all replies:
 
 ---
 
+### Find Channel
+
+**Script:** `scripts/slack/find_channel.py`
+
+**Purpose:** Find a Slack channel ID by name using Slack Web API (`conversations.list`)
+
+**Usage:**
+```bash
+./scripts/slack/find_channel.py <channel_name>
+```
+
+**Parameters:**
+- `channel_name` - Channel name to search for (with or without `#`)
+
+**Example:**
+```bash
+./scripts/slack/find_channel.py my-team-alerts
+./scripts/slack/find_channel.py "#general"
+```
+
+**Output Format:**
+```json
+{
+  "id": "C04ABCD1234",
+  "name": "my-team-alerts",
+  "is_private": false,
+  "num_members": 12
+}
+```
+
+**Exit codes:**
+- 0 = success
+- 1 = invalid params / channel not found
+- 2 = API error
+- 4 = auth error
+
+---
+
 ### Post Message
 
 **Script:** `scripts/slack/post_message.py`
