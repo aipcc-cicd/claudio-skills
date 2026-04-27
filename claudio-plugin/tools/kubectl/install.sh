@@ -24,7 +24,7 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 # This version is tracked by Renovate for automatic updates
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
-KUBECTL_VERSION="1.35.4"
+KUBECTL_VERSION="1.36.0"
 
 # ============================================================================
 # CONFIGURATION

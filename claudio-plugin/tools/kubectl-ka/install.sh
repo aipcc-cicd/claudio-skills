@@ -24,7 +24,7 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 # This version is tracked by Renovate for automatic updates
 # renovate: datasource=github-releases depName=kubearchive/kubearchive
-KUBECTL_KA_VERSION="1.21.2"
+KUBECTL_KA_VERSION="1.21.3"
 
 # ============================================================================
 # CONFIGURATION
