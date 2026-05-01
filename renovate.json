@@ -2,10 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "group:all"
+    "group:all",
+    "schedule:weekly"
   ],
   "baseBranchPatterns": [
     "main"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["pip_requirements"],
+      "rangeStrategy": "bump"
+    }
   ],
   "customManagers": [
     {
@@ -19,6 +26,17 @@
       ],
       "versioningTemplate": "semver",
       "extractVersionTemplate": "^(?:v|jq-)?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "Update system package versions via repology",
+      "managerFilePatterns": [
+        "/^claudio-plugin/tools/.+/install\\.sh$/"
+      ],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>[^\\s]+)\\s+depName=(?<depName>[^\\s]+)\\s+versioning=(?<versioning>[^\\s]+)\\n[A-Z_]+_VERSION=\"(?<currentValue>[^\"]+)\""
+      ],
+      "extractVersionTemplate": "^(?:\\d+:)?(?<version>[0-9]+\\.[0-9]+\\.[0-9]+)"
     }
   ]
 }

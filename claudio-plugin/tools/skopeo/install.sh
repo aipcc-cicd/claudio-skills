@@ -20,6 +20,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../common.sh"
 
 # ============================================================================
+# DEPENDENCY VERSION
+# ============================================================================
+# Skopeo is primarily installed in the claudio container (ubi10) via microdnf;
+# this script is a fallback for environments where skopeo is not pre-installed.
+# renovate: datasource=repology depName=centos_stream_10/skopeo versioning=loose
+SKOPEO_VERSION="1.20.0"
+
+# ============================================================================
 # SKOPEO INSTALLATION
 # ============================================================================
 
@@ -51,7 +59,7 @@ install_skopeo() {
     local pkg_manager
     pkg_manager=$(detect_package_manager)
 
-    log "Installing skopeo using package manager: $pkg_manager"
+    log "Installing skopeo ${SKOPEO_VERSION} using package manager: $pkg_manager"
 
     # Verify we're on Linux
     verify_linux || return 1
@@ -59,7 +67,7 @@ install_skopeo() {
     case "$pkg_manager" in
         dnf)
             log "Installing skopeo via dnf..."
-            if maybe_sudo dnf install -y skopeo; then
+            if maybe_sudo dnf install -y "skopeo-${SKOPEO_VERSION}" 2>/dev/null || maybe_sudo dnf install -y skopeo; then
                 log "✓ skopeo installed successfully via dnf"
             else
                 log "✗ Failed to install skopeo via dnf" >&2
@@ -69,7 +77,7 @@ install_skopeo() {
             ;;
         apt)
             log "Installing skopeo via apt..."
-            if maybe_sudo apt-get update && maybe_sudo apt-get install -y skopeo; then
+            if maybe_sudo apt-get update && { maybe_sudo apt-get install -y "skopeo=${SKOPEO_VERSION}*" 2>/dev/null || maybe_sudo apt-get install -y skopeo; }; then
                 log "✓ skopeo installed successfully via apt"
             else
                 log "✗ Failed to install skopeo via apt" >&2
@@ -79,7 +87,7 @@ install_skopeo() {
             ;;
         apk)
             log "Installing skopeo via apk..."
-            if maybe_sudo apk add skopeo; then
+            if maybe_sudo apk add "skopeo~=${SKOPEO_VERSION}" 2>/dev/null || maybe_sudo apk add skopeo; then
                 log "✓ skopeo installed successfully via apk"
             else
                 log "✗ Failed to install skopeo via apk" >&2
