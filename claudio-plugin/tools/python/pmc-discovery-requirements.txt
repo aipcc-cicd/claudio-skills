@@ -1,0 +1,4 @@
+# Dependencies for PMC Discovery skill (pmc_sync.py)
+
+PyYAML>=6.0
+ruamel.yaml>=0.18
