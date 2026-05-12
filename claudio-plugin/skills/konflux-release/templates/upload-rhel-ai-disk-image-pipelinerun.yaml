@@ -1,0 +1,44 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: upload-rhel-ai-{{ACCELERATOR}}-{{CLOUD_PROVIDER}}-disk-image-
+  namespace: {{NAMESPACE}}
+spec:
+  params:
+    - name: accelerator
+      value: "{{ACCELERATOR}}"
+    - name: cloud-provider
+      value: "{{CLOUD_PROVIDER}}"
+    - name: container-image
+      value: "{{CONTAINER_IMAGE}}"
+    - name: pull-secret-name
+      value: "{{PULL_SECRET_NAME}}"
+    - name: rhel-ai-version
+      value: "{{RHEL_AI_VERSION}}"
+    - name: debug
+      value: "false"
+  pipelineRef:
+    resolver: git
+    params:
+      - name: org
+        value: redhat
+      - name: repo
+        value: rhel-ai/konflux-data
+      - name: scmType
+        value: gitlab
+      - name: serverURL
+        value: https://gitlab.com
+      - name: revision
+        value: main
+      - name: pathInRepo
+        value: pipelines/upload-rhel-ai-disk-image.yaml
+      - name: token
+        value: pipelines-as-code-secret
+      - name: tokenKey
+        value: password
+  taskRunTemplate:
+    serviceAccountName: konflux-integration-runner
+  timeouts:
+    pipeline: 3h0m0s
+    tasks: 2h0m0s
+    finally: 1h0m0s

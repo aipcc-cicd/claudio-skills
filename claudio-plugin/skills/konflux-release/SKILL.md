@@ -1,7 +1,7 @@
 ---
 name: konflux-release
 description: Create production releases on the Konflux platform. Handles the complete stage-to-production release workflow including discovering stage releases, generating production release YAMLs with release notes, and preparing them for review. Supports manual mode and config-driven mode with an external product config directory.
-allowed-tools: Bash(*/konflux-release/scripts/generate_release_yaml.py *),Bash(kubectl get *),Bash(skopeo inspect *),Bash(glab api --method GET *),Write(*RELEASE_SUMMARY*)
+allowed-tools: Bash(*/konflux-release/scripts/generate_release_yaml.py *),Bash(kubectl get *),Bash(skopeo inspect *),Bash(glab api --method GET *),Write(*RELEASE_SUMMARY*),Bash(sed *upload-rhel-ai-disk-image-pipelinerun.yaml*)
 ---
 
 # Konflux Release
@@ -200,6 +200,37 @@ The script automatically creates the output directory. Use the provided script f
 **Optional parameters:**
 - `--grace-period` - grace period in days (default: 30)
 
+### Step 7b: Generate Cloud Image Upload PipelineRuns
+
+When releasing disk image components for rhelai, also generate PipelineRun YAMLs for uploading cloud disk images. The following component-to-cloud mappings are supported:
+
+| Component pattern | Accelerator | Cloud Provider |
+|---|---|---|
+| `bootc-cuda-aws-disk-image` | cuda | aws |
+| `bootc-cuda-azure-disk-image` | cuda | azure |
+| `bootc-rocm-azure-disk-image` | rocm | azure |
+
+**When to generate:** During both full releases and single-component releases, if the release includes any of the above cloud disk image components.
+
+**How to generate:** Use the PipelineRun YAML template at `templates/upload-rhel-ai-disk-image-pipelinerun.yaml` and substitute the placeholder variables using `sed`:
+
+```bash
+sed -e 's/{{ACCELERATOR}}/cuda/g' -e 's/{{CLOUD_PROVIDER}}/aws/g' -e 's|{{CONTAINER_IMAGE}}|<image-ref>|g' -e 's/{{PULL_SECRET_NAME}}/<pull-secret>/g' -e 's/{{RHEL_AI_VERSION}}/<version>/g' -e 's/{{NAMESPACE}}/<namespace>/g' /full/path/to/konflux-release/templates/upload-rhel-ai-disk-image-pipelinerun.yaml > /path/to/output/upload-rhel-ai-cuda-aws-disk-image.yaml
+```
+
+**Variable sources:**
+
+| Variable | Source |
+|---|---|
+| `ACCELERATOR` | Parsed from the component name (e.g., `bootc-cuda-aws-disk-image` → `cuda`) |
+| `CLOUD_PROVIDER` | Parsed from the component name (e.g., `bootc-cuda-aws-disk-image` → `aws`) |
+| `CONTAINER_IMAGE` | From the release snapshot: `kubectl get snapshot <name> -n <ns> -o json \| jq -r '.spec.components[] \| select(.name == "<component>") \| .containerImage'` |
+| `PULL_SECRET_NAME` | From `config-disk-images.yaml` or derived from application/branch (e.g., `rhelai-bootc-3-3-pull`) |
+| `RHEL_AI_VERSION` | The release version provided by the user (e.g., `3.3.0`) |
+| `NAMESPACE` | From `config-disk-images.yaml` field `definitions[].tenant` (e.g., `rhel-ai-tenant`) |
+
+**Output files:** One PipelineRun YAML per cloud disk image component, named `upload-rhel-ai-<accelerator>-<cloud>-disk-image.yaml`. These files are committed to `konflux-data/pipelineruns/` (see Step 9).
+
 ### Step 8: Generate Release Summary
 
 Create a summary document that includes:
@@ -216,6 +247,19 @@ The generated release YAMLs and summary are NOT applied directly to the cluster.
 **Config-driven mode:** Follow the config repo's CLAUDE.md instructions for where to store output files. Commit the generated files and open a merge request against the config repo for human review.
 
 **Manual mode:** Write the files to a local output directory. The user decides how to apply them (manually, via CI, etc.).
+
+**Cloud image upload PipelineRuns (when generated in Step 7b):**
+
+If PipelineRun YAMLs were generated, commit them to the `konflux-data` repository:
+
+1. The `konflux-data` repo must be available locally as a working directory
+2. Create a branch using the release's JIRA ticket following the same naming convention as `aipcc-product-management-configs` (e.g., `AIPCC-XXXXX-upload-disk-images-<version>`)
+3. Write the PipelineRun YAMLs to `konflux-data/pipelineruns/`
+4. Commit and open a merge request in `konflux-data` for review
+
+This results in two MRs per release when cloud disk images are involved:
+- Release CRs + RELEASE_SUMMARY.md → MR in `aipcc-product-management-configs`
+- PipelineRun YAMLs → MR in `konflux-data`
 
 ## Config-Driven Mode
 
