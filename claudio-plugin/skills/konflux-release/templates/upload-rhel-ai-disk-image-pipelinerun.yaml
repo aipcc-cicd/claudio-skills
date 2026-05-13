@@ -5,18 +5,24 @@ metadata:
   namespace: {{NAMESPACE}}
 spec:
   params:
+    # Accelerator type (cuda, rocm)
     - name: accelerator
       value: "{{ACCELERATOR}}"
+    # Target cloud provider (aws, azure)
     - name: cloud-provider
       value: "{{CLOUD_PROVIDER}}"
+    # Container image URL - must be the digest-pinned OCI reference from the release snapshot (e.g., quay.io/...@sha256:...)
     - name: container-image
       value: "{{CONTAINER_IMAGE}}"
-    - name: pull-secret-name
-      value: "{{PULL_SECRET_NAME}}"
-    - name: rhel-ai-version
-      value: "{{RHEL_AI_VERSION}}"
+    # Debug mode (optional)
     - name: debug
       value: "false"
+    # Pull secret name - unique per Konflux application
+    - name: pull-secret-name
+      value: "{{PULL_SECRET_NAME}}"
+    # RHEL AI version - numeric version only (e.g., 3.3.0). The pipeline constructs the full image name.
+    - name: rhel-ai-version
+      value: "{{RHEL_AI_VERSION}}"
   pipelineRef:
     resolver: git
     params:

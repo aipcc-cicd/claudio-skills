@@ -224,12 +224,12 @@ sed -e 's/{{ACCELERATOR}}/cuda/g' -e 's/{{CLOUD_PROVIDER}}/aws/g' -e 's|{{CONTAI
 |---|---|
 | `ACCELERATOR` | Parsed from the component name (e.g., `bootc-cuda-aws-disk-image` → `cuda`) |
 | `CLOUD_PROVIDER` | Parsed from the component name (e.g., `bootc-cuda-aws-disk-image` → `aws`) |
-| `CONTAINER_IMAGE` | From the release snapshot: `kubectl get snapshot <name> -n <ns> -o json \| jq -r '.spec.components[] \| select(.name == "<component>") \| .containerImage'` |
+| `CONTAINER_IMAGE` | Digest-pinned OCI reference from the release snapshot (e.g., `quay.io/...@sha256:...`). Must include the `@sha256:` digest, not a tag. Extract via: `kubectl get snapshot <name> -n <ns> -o json \| jq -r '.spec.components[] \| select(.name == "<component>") \| .containerImage'` |
 | `PULL_SECRET_NAME` | From `config-disk-images.yaml` or derived from application/branch (e.g., `rhelai-bootc-3-3-pull`) |
 | `RHEL_AI_VERSION` | The release version provided by the user (e.g., `3.3.0`) |
 | `NAMESPACE` | From `config-disk-images.yaml` field `definitions[].tenant` (e.g., `rhel-ai-tenant`) |
 
-**Output files:** One PipelineRun YAML per cloud disk image component, named `upload-rhel-ai-<accelerator>-<cloud>-disk-image.yaml`. These files are committed to `konflux-data/pipelineruns/` (see Step 9).
+**Output files:** One PipelineRun YAML per cloud disk image component, named `upload-rhel-ai-<accelerator>-<cloud>-disk-image.yaml`. These files are written to the same release version directory as the Release CRs (e.g., `rhelai/<branch>/releases/<version>/`).
 
 ### Step 8: Generate Release Summary
 
@@ -247,19 +247,6 @@ The generated release YAMLs and summary are NOT applied directly to the cluster.
 **Config-driven mode:** Follow the config repo's CLAUDE.md instructions for where to store output files. Commit the generated files and open a merge request against the config repo for human review.
 
 **Manual mode:** Write the files to a local output directory. The user decides how to apply them (manually, via CI, etc.).
-
-**Cloud image upload PipelineRuns (when generated in Step 7b):**
-
-If PipelineRun YAMLs were generated, commit them to the `konflux-data` repository:
-
-1. The `konflux-data` repo must be available locally as a working directory
-2. Create a branch using the release's JIRA ticket following the same naming convention as `aipcc-product-management-configs` (e.g., `AIPCC-XXXXX-upload-disk-images-<version>`)
-3. Write the PipelineRun YAMLs to `konflux-data/pipelineruns/`
-4. Commit and open a merge request in `konflux-data` for review
-
-This results in two MRs per release when cloud disk images are involved:
-- Release CRs + RELEASE_SUMMARY.md → MR in `aipcc-product-management-configs`
-- PipelineRun YAMLs → MR in `konflux-data`
 
 ## Config-Driven Mode
 
