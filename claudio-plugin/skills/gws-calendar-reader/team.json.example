@@ -1,0 +1,7 @@
+{
+  "timezone": "UTC",
+  "team": [
+    {"name": "Alice Smith", "email": "alice@yourorg.com"},
+    {"name": "Bob Jones",   "email": "bob@yourorg.com"}
+  ]
+}
