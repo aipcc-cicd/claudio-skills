@@ -24,7 +24,7 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 # This version is tracked by Renovate for automatic updates
 # renovate: datasource=gitlab-releases depName=gitlab-org/cli registryUrl=https://gitlab.com
-GLAB_VERSION="1.93.0"
+GLAB_VERSION="1.97.0"
 
 # ============================================================================
 # CONFIGURATION

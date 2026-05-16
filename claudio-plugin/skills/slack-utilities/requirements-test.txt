@@ -4,7 +4,7 @@
 -r requirements.txt
 
 # Testing framework
-pytest>=7.4.0
+pytest>=9.0.3
 
 # Mocking
-responses>=0.23.0
+responses>=0.26.0
