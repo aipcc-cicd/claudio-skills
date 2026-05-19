@@ -143,7 +143,7 @@ For each successful stage release, extract:
 Then determine:
 
 - **Tech preview status** - from product config or user input
-- **Production ReleasePlan name** - derive from stage plan naming convention
+- **Production ReleasePlan name** - derive from the stage plan name by substituting the type segment (see "Deriving the production release plan name" under ReleasePlan Types); then verify the derived plan exists in the cluster before proceeding
 - **Release notes template** - select appropriate template based on component type and tech preview status
 - **Variant/accelerator display name** - derive from component name
 
@@ -408,12 +408,36 @@ Examples: `my-comp-cuda-prod-1.yaml`, `my-comp-cuda-stage-rc-2.yaml`
 
 There are four types of release plans. The skill **creates** Release CRs targeting prod, tech-preview-prod, or stage-rc plans. It **reads** stage releases (created automatically by CI) to discover snapshots.
 
-| Type | Pattern | Purpose | Created by |
-|------|---------|---------|------------|
-| Stage | `<app>-stage` | Automatic nightly/development builds | CI (on push) — skill only reads these |
-| Stage-RC | `<app>-stage-rc` | Release candidate validation on staging registry | Skill (manual trigger) |
-| GA production | `<app>-prod` | GA production release | Skill (manual trigger) |
-| TP production | `<app>-tech-preview-prod` | Tech preview production release | Skill (manual trigger) |
+| Type | Example (unversioned) | Example (versioned) | Purpose | Created by |
+|------|-----------------------|---------------------|---------|------------|
+| Stage | `<app>-stage` | `<app>-stage-<branch>` | Automatic nightly/development builds | CI (on push) — skill only reads these |
+| Stage-RC | `<app>-stage-rc` | `<app>-stage-rc-<branch>` | Release candidate validation on staging registry | Skill (manual trigger) |
+| GA production | `<app>-prod` | `<app>-prod-<branch>` | GA production release | Skill (manual trigger) |
+| TP production | `<app>-tech-preview-prod` | `<app>-tech-preview-prod-<branch>` | Tech preview production release | Skill (manual trigger) |
+
+Where `<app>` is the application-level prefix (e.g., the product and variant identifier) and `<branch>` is the branch version with dots replaced by dashes (e.g., `3.3` → `3-3`, `3.4-ea1` → `3-4-ea1`).
+
+**Deriving the production release plan name from a stage plan:**
+
+Take the stage release plan name from `.spec.releasePlan` on the stage Release CR and substitute the plan type segment in place:
+
+- GA prod: replace `-stage-` with `-prod-` (middle) or `-stage` at end with `-prod`
+- TP prod: replace `-stage-` with `-tech-preview-prod-` (middle) or `-stage` at end with `-tech-preview-prod`
+- Stage-RC: replace `-stage-` with `-stage-rc-` (middle) or `-stage` at end with `-stage-rc`
+
+Examples (using a generic `<app>` prefix and `<branch>` suffix):
+- `<app>-stage-<branch>` → GA: `<app>-prod-<branch>`, TP: `<app>-tech-preview-prod-<branch>`
+- `<app>-stage` → GA: `<app>-prod`, TP: `<app>-tech-preview-prod`
+
+The branch suffix is always preserved exactly as-is. Never drop it or substitute a different value.
+
+**CRITICAL:** Do NOT use the `release_plan[].name` values from `config.yaml` as the cluster release plan name — those entries may be unversioned while the actual cluster plans include the branch suffix. Always derive the production plan name from the stage release plan found in the cluster.
+
+**Verify the plan exists before generating:** after deriving the production plan name, confirm it exists in the cluster:
+```bash
+kubectl get releaseplan <derived-plan-name> -n <namespace>
+```
+If the plan does not exist, stop and report the issue to the user rather than generating a Release CR that will fail.
 
 **Which plan to use when creating a Release CR:**
 - User asks for a **production release** → use `*-prod` (GA components) or `*-tech-preview-prod` (tech preview components)
