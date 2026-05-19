@@ -1,7 +1,7 @@
 ---
 name: konflux-its-analyzer
 description: Analyze failed Konflux integration test scenario PipelineRuns using KubeArchive. Use when the user asks to analyze failed ITS pipeline runs, debug test failures, or investigate why integration tests failed in Konflux.
-allowed-tools: Bash(*/konflux-its-analyzer/scripts/*.sh:*),Bash(*/tools/*/install.sh:*)
+allowed-tools: Bash(*/konflux-its-analyzer/scripts/get_failed_pipelineruns.sh *),Bash(*/konflux-its-analyzer/scripts/analyze_its_failure.sh *),Bash(*/tools/*/install.sh *)
 compatibility: Requires KUBECONFIG env var pointing to Konflux cluster kubeconfig. Requires KUBEARCHIVE_HOST env var.
 ---
 
@@ -15,17 +15,11 @@ Analyze failed Konflux integration test scenario (ITS) PipelineRuns using KubeAr
 - `ai-tenant` — RHAIIS components
 - `rhel-ai-tenant` — RHEL AI components
 
-**Prerequisites:**
-- `kubectl-ka` (KubeArchive CLI) installed and cluster accessible
-- `jq` for JSON parsing
-- `KUBECONFIG` env var set to kubeconfig file path
-- `KUBEARCHIVE_HOST` env var set to KubeArchive API server URL
+**Prerequisites:** `KUBECONFIG` and `KUBEARCHIVE_HOST` env vars must be set.
 
-**Dependency Installation:**
-```bash
-../../../tools/kubectl-ka/install.sh   # Install kubectl-ka if not present
-../../../tools/jq/install.sh           # Install jq if not present
-```
+**IMPORTANT:**
+- Do NOT run any prerequisite checks (no `command -v`, no env var checks, no install scripts). Run the scripts directly — they validate dependencies internally and print install instructions if something is missing.
+- Do NOT append `2>&1` to script commands — the scripts handle their own stderr output.
 
 ## Scripts
 
@@ -35,7 +29,7 @@ Lists failed ITS PipelineRuns within a time period.
 
 **Usage:**
 ```bash
-./scripts/get_failed_pipelineruns.sh <namespace> <time-spec> [--human]
+${CLAUDE_SKILL_DIR}/scripts/get_failed_pipelineruns.sh <namespace> <time-spec> [--human]
 ```
 
 **Arguments:**
@@ -63,9 +57,9 @@ Lists failed ITS PipelineRuns within a time period.
 
 **Examples:**
 ```bash
-./scripts/get_failed_pipelineruns.sh ai-tenant 2026-04-16
-./scripts/get_failed_pipelineruns.sh ai-tenant 2026-04-14..2026-04-16 --human
-./scripts/get_failed_pipelineruns.sh ai-tenant 4h
+${CLAUDE_SKILL_DIR}/scripts/get_failed_pipelineruns.sh ai-tenant 2026-04-16
+${CLAUDE_SKILL_DIR}/scripts/get_failed_pipelineruns.sh ai-tenant 2026-04-14..2026-04-16 --human
+${CLAUDE_SKILL_DIR}/scripts/get_failed_pipelineruns.sh ai-tenant 4h
 ```
 
 **Output (JSON):**
@@ -93,7 +87,7 @@ Deep-analyzes a single failed PipelineRun. Examines TaskRun statuses, fetches fa
 
 **Usage:**
 ```bash
-./scripts/analyze_its_failure.sh <namespace> <pipelinerun-name> [OPTIONS]
+${CLAUDE_SKILL_DIR}/scripts/analyze_its_failure.sh <namespace> <pipelinerun-name> [OPTIONS]
 ```
 
 **Arguments:**
@@ -111,8 +105,8 @@ Deep-analyzes a single failed PipelineRun. Examines TaskRun statuses, fetches fa
 
 **Examples:**
 ```bash
-./scripts/analyze_its_failure.sh ai-tenant rhaiis-test-vllm-podman-neuron-x86-64-pqr7h --human
-./scripts/analyze_its_failure.sh ai-tenant rhaiis-test-vllm-podman-cuda-x86-64-msrt7
+${CLAUDE_SKILL_DIR}/scripts/analyze_its_failure.sh ai-tenant rhaiis-test-vllm-podman-neuron-x86-64-pqr7h --human
+${CLAUDE_SKILL_DIR}/scripts/analyze_its_failure.sh ai-tenant rhaiis-test-vllm-podman-cuda-x86-64-msrt7
 ```
 
 **Output (JSON):**
@@ -148,20 +142,20 @@ Deep-analyzes a single failed PipelineRun. Examines TaskRun statuses, fetches fa
 
 ```bash
 # Step 1: List failed PipelineRuns
-./scripts/get_failed_pipelineruns.sh ai-tenant 2026-04-16 --human
+${CLAUDE_SKILL_DIR}/scripts/get_failed_pipelineruns.sh ai-tenant 2026-04-16 --human
 
 # Step 2: Analyze a specific failure
-./scripts/analyze_its_failure.sh ai-tenant rhaiis-test-vllm-podman-cuda-x86-64-msrt7 --human
+${CLAUDE_SKILL_DIR}/scripts/analyze_its_failure.sh ai-tenant rhaiis-test-vllm-podman-cuda-x86-64-msrt7 --human
 ```
 
 ### Workflow 2: Recent Failures
 
 ```bash
 # Check last 4 hours
-./scripts/get_failed_pipelineruns.sh ai-tenant 4h --human
+${CLAUDE_SKILL_DIR}/scripts/get_failed_pipelineruns.sh ai-tenant 4h --human
 
 # Check last week
-./scripts/get_failed_pipelineruns.sh ai-tenant 1w
+${CLAUDE_SKILL_DIR}/scripts/get_failed_pipelineruns.sh ai-tenant 1w
 ```
 
 ## Error Handling
