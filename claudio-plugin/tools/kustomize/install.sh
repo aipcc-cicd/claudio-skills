@@ -23,9 +23,8 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 # DEPENDENCY VERSION
 # ============================================================================
-# This version is tracked by Renovate for automatic updates
-# renovate: datasource=github-releases depName=kubernetes-sigs/kustomize versioning=regex:^kustomize/v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$
-KUSTOMIZE_VERSION="5.8.1"
+# Pinned to match KRD — bump manually when KRD bumps
+KUSTOMIZE_VERSION="5.7.1"
 
 # ============================================================================
 # CONFIGURATION
