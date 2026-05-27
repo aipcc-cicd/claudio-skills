@@ -411,6 +411,24 @@ When using this plugin you typically want to allow skill scripts to run without 
 - Add new `Skill(...)` entries incrementally as domain skills are deployed
 - `Read(/home/$USER/.claude/**)` — allows reading Claude config files (CLAUDE.md, memory files)
 
+## Releasing
+
+Releases are fully automated via GitHub Actions — no manual commits or version bumps needed.
+
+1. Go to **Actions** → **Release** → **Run workflow**
+2. Enter the version (e.g. `v0.5.6`)
+3. Click **Run workflow**
+
+The workflow validates the version format, bumps `plugin.json` and the README badge, commits to `main`, creates a git tag, and publishes a GitHub Release with auto-generated notes.
+
+### Patch releases
+
+If you need to patch an older release:
+
+1. Create a release branch from the tag: `git checkout -b release-0.5 v0.5.6`
+2. Cherry-pick the fix(es) and push the branch: `git push origin release-0.5`
+3. Run the release workflow, selecting the release branch as the target
+
 ## Contributing
 
 Contributions are welcome! Please:
