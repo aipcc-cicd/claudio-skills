@@ -1,8 +1,8 @@
 {
-"name": "claudio-plugin",
-"description": "Plugins for Claudio agent",
-"version": "0.5.5",
-"author": {
-"name": "Claudio"
-}
+  "name": "claudio-plugin",
+  "description": "Plugins for Claudio agent",
+  "version": "0.6.0",
+  "author": {
+    "name": "Claudio"
+  }
 }
