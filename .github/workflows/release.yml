@@ -28,7 +28,6 @@ jobs:
     name: Create Release
     needs: authorize
     runs-on: ubuntu-24.04
-    environment: release
     permissions:
       contents: write
 
