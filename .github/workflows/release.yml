@@ -43,7 +43,7 @@ jobs:
 
     - name: Check release does not exist
       env:
-        GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         INPUT_VERSION: ${{ inputs.version }}
       run: |
         if gh release view "${INPUT_VERSION}" &>/dev/null; then
@@ -54,7 +54,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
       with:
-        token: ${{ secrets.RELEASE_PAT }}
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Compute version strings
       env:
@@ -86,7 +86,7 @@ jobs:
 
     - name: Create release and tag
       env:
-        GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         RELEASE_TAG: ${{ inputs.version }}
       run: |
         gh release create "${RELEASE_TAG}" \
