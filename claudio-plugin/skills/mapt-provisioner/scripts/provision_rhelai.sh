@@ -43,7 +43,7 @@ usage() {
     echo "  --disk-size             Disk size in GB"
     echo "  --accelerator               GPU accelerator: cuda or rocm (mapt default: cuda)"
     echo "  --compute-sizes             Comma-separated VM sizes to constrain spot selection (e.g. Standard_E8s_v5,Standard_E16s_v5)"
-    echo "  --spot-eviction-tolerance   Spot tolerance: lowest, low, medium, high, highest (default: lowest)"
+    echo "  --spot-eviction-tolerance   Spot tolerance: lowest, low, medium, high, highest (default: highest when --spot)"
     echo "  --tags                      Key=value tags for cost attribution (e.g. team=myteam,env=dev)"
     echo "  --spot                      Use spot instances"
     echo "  --conn-details-output   Path for connection details (default: /tmp/mapt-conn-details)"
@@ -76,6 +76,12 @@ fi
 
 validate_backend_url
 validate_provider_credentials "$PROVIDER"
+
+# Default spot-eviction-tolerance to highest when using spot — GPU workloads
+# provisioned through this skill are typically testing/demo, not production.
+if [[ "$SPOT" = true && -z "$SPOT_EVICTION_TOLERANCE" ]]; then
+    SPOT_EVICTION_TOLERANCE="highest"
+fi
 
 # For Azure, discover the latest available gallery image version when not specified
 if [[ "$PROVIDER" == "azure" && -z "$VERSION" ]]; then

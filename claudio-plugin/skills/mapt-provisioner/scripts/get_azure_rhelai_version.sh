@@ -4,9 +4,10 @@
 # for the given accelerator type, across all resource groups in the subscription.
 #
 # Usage:
-#   ./get_azure_rhelai_version.sh [--accelerator cuda|rocm]
+#   ./get_azure_rhelai_version.sh [--accelerator cuda|rocm] [--list]
 #
 # Outputs: the latest version string (e.g. "3.2.0") on stdout
+#          with --list: all available versions, one per line, sorted
 #
 # Required environment variables:
 #   ARM_TENANT_ID, ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_SUBSCRIPTION_ID
@@ -20,10 +21,12 @@ source "$SCRIPT_DIR/_common.sh"
 validate_azure_credentials
 
 ACCELERATOR="cuda"
+LIST=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --accelerator) require_arg "$1" "${2:-}"; ACCELERATOR="$2"; shift 2 ;;
+        --list) LIST=true; shift ;;
         *) echo "ERROR: Unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -71,6 +74,11 @@ if [[ -z "$VERSIONS" ]]; then
     echo "  Available galleries:" >&2
     echo "$GALLERIES" | grep "^rhel_ai_" >&2 || echo "  (none)" >&2
     exit 1
+fi
+
+if [[ "$LIST" = true ]]; then
+    echo "$VERSIONS" | sort -V
+    exit 0
 fi
 
 # Prefer stable (non-EA) versions; fall back to EA only if no stable exists.

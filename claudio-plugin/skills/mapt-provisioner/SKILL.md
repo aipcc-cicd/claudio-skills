@@ -23,8 +23,19 @@ Users will ask in natural language — extract the intent and map it to script f
 | "tag it X=Y" / "tags X=Y,A=B" | `--tags X=Y,A=B` |
 | "store state in s3://..." / "backend s3://..." | set `MAPT_BACKEND_URL=s3://...` |
 | "destroy it" / "tear it down" / "clean up" | `destroy.sh` |
+| "what versions are available?" / "list images" | `get_azure_rhelai_version.sh --list` |
 | "check status" / "is it up?" | `check_status.sh` |
 | "connect to it" / "SSH in" / "run X on it" | SSH directly using conn-details |
+
+**Version normalization:** Users often omit the patch version or use spaces/wrong separators. Normalize before passing `--version`:
+| User says | Normalized |
+|-----------|------------|
+| "3.4 ea1" / "3.4-ea1" / "3.4 ea.1" | `3.4.0-ea.1` |
+| "3.4 ea2" / "3.4-ea2" | `3.4.0-ea.2` |
+| "3.4" / "3.4.0" | `3.4.0` |
+| "3.3.1" | `3.3.1` (already correct) |
+
+The pattern is `MAJOR.MINOR.PATCH` with optional `-ea.N` suffix. If the user omits `.PATCH`, assume `.0`. If they write `ea` without a dot before the number, add it.
 
 **Env var defaults:** `AWS_DEFAULT_REGION` and credentials should be pre-configured in the environment — do not ask the user to provide them in their request. If `MAPT_BACKEND_URL` is already set in the environment, the user does not need to mention it either.
 
@@ -72,7 +83,7 @@ OpenShift SNC is AWS only — mapt does not support Azure for SNC.
 | `--gpus` | Number of GPUs |
 | `--accelerator` | GPU type: `cuda` or `rocm` (mapt default: cuda) |
 | `--spot` | Use spot instances (cheaper, can be interrupted) |
-| `--spot-eviction-tolerance` | Spot tolerance: `lowest`, `low`, `medium`, `high`, `highest` (default: `lowest`). Increase if spot provisioning fails with "no good choice". |
+| `--spot-eviction-tolerance` | Spot tolerance: `lowest`, `low`, `medium`, `high`, `highest`. Defaults to `highest` when `--spot` is used (GPU workloads are typically testing, not production). Override with a lower value only if the user explicitly needs long-running stability. |
 | `--tags` | Cost attribution: `team=myteam,env=dev` |
 | `--project-name` | Stack identifier (default: auto-generated) |
 
