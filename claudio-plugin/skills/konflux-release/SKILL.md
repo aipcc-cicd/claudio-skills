@@ -202,15 +202,17 @@ The script automatically creates the output directory. Use the provided script f
 
 ### Step 7b: Generate Cloud Image Upload PipelineRuns
 
-When releasing disk image components for rhelai, also generate PipelineRun YAMLs for uploading cloud disk images. The following component-to-cloud mappings are supported:
+When releasing disk image components for rhelai, also generate PipelineRun YAMLs for uploading cloud disk images. The following base-name-to-cloud mappings are supported:
 
-| Component pattern | Accelerator | Cloud Provider |
+| Base component name | Accelerator | Cloud Provider |
 |---|---|---|
 | `bootc-cuda-aws-disk-image` | cuda | aws |
 | `bootc-cuda-azure-disk-image` | cuda | azure |
 | `bootc-rocm-azure-disk-image` | rocm | azure |
 
-**When to generate:** During both full releases and single-component releases, if the release includes any of the above cloud disk image components.
+**Identifying cloud upload components:** Actual Konflux component names include a branch-based suffix (e.g., `bootc-cuda-aws-disk-image-3-4` for branch `3.4`). To identify which components need upload PipelineRuns, check whether the component name contains `aws-disk-image` or `azure-disk-image`. Do NOT require an exact match against the base names above — the branch suffix must be ignored. Components containing `gcp-disk-image`, `iso-disk-image`, or `qcow2-disk-image` do NOT get upload PipelineRuns.
+
+**When to generate:** During both full releases and single-component releases, if the release includes any component matching the above cloud upload patterns.
 
 **How to generate:** Use the PipelineRun YAML template at `templates/upload-rhel-ai-disk-image-pipelinerun.yaml` and substitute the placeholder variables using `sed`:
 
@@ -222,11 +224,11 @@ sed -e 's/{{ACCELERATOR}}/cuda/g' -e 's/{{CLOUD_PROVIDER}}/aws/g' -e 's|{{CONTAI
 
 | Variable | Source |
 |---|---|
-| `ACCELERATOR` | Parsed from the component name (e.g., `bootc-cuda-aws-disk-image` → `cuda`) |
-| `CLOUD_PROVIDER` | Parsed from the component name (e.g., `bootc-cuda-aws-disk-image` → `aws`) |
-| `CONTAINER_IMAGE` | Digest-pinned OCI reference from the release snapshot (e.g., `quay.io/...@sha256:...`). Must include the `@sha256:` digest, not a tag. Extract via: `kubectl get snapshot <name> -n <ns> -o json \| jq -r '.spec.components[] \| select(.name == "<component>") \| .containerImage'` |
-| `PULL_SECRET_NAME` | From `config-disk-images.yaml` or derived from application/branch (e.g., `rhelai-bootc-3-3-pull`) |
-| `RHEL_AI_VERSION` | The release version provided by the user (e.g., `3.3.0`) |
+| `ACCELERATOR` | Parsed from the component name, ignoring the branch suffix. The accelerator is the segment after `bootc-` and before the cloud provider (e.g., `bootc-cuda-aws-disk-image-3-4` → `cuda`, `bootc-rocm-azure-disk-image-3-4` → `rocm`) |
+| `CLOUD_PROVIDER` | Parsed from the component name, ignoring the branch suffix (e.g., `bootc-cuda-aws-disk-image-3-4` → `aws`, `bootc-cuda-azure-disk-image-3-4` → `azure`) |
+| `CONTAINER_IMAGE` | Digest-pinned OCI reference from the release snapshot (e.g., `quay.io/...@sha256:...`). Must include the `@sha256:` digest, not a tag. Extract using the **full Konflux component name** (with branch suffix): `kubectl get snapshot <name> -n <ns> -o json \| jq -r '.spec.components[] \| select(.name == "<component>") \| .containerImage'` |
+| `PULL_SECRET_NAME` | From `config-disk-images.yaml` or derived from application/branch (e.g., `rhelai-bootc-3-4-pull`) |
+| `RHEL_AI_VERSION` | The release version provided by the user (e.g., `3.4.0`) |
 | `NAMESPACE` | From `config-disk-images.yaml` field `definitions[].tenant` (e.g., `rhel-ai-tenant`) |
 
 **Output files:** One PipelineRun YAML per cloud disk image component, named `upload-rhel-ai-<accelerator>-<cloud>-disk-image.yaml`. These files are written to the same release version directory as the Release CRs (e.g., `rhelai/<branch>/releases/<version>/`).
