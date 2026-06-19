@@ -8,6 +8,7 @@ This repository contains **Claudio Skills Plugin** - a Claude Code plugin that e
 
 This plugin enables Claude Code to:
 
+- **Provision and manage cloud infrastructure** using mapt for AWS and Azure (RHEL AI VMs, spot instances, GPU workloads)
 - **Analyze GitLab CI/CD job failures** using structured scripts for pipeline debugging
 - **Orchestrate Konflux production releases** with self-contained stage-to-production workflows
 - **Troubleshoot and analyze AWS CloudWatch Logs** for application debugging and monitoring
@@ -62,9 +63,17 @@ claudio-plugin/
     │       ├── run_insights_query.sh    # Custom Insights queries
     │       ├── trace_request.sh         # Cross-service request tracing
     │       └── tail_logs.sh             # Real-time log monitoring
-    └── gitlab-branch-manager/
-        ├── SKILL.md             # GitLab branch creation and protection skill
-            └── create_and_protect_branch.sh  # Branch creation + protection
+    ├── mapt-provisioner/
+    │   ├── SKILL.md             # Cloud infrastructure provisioning skill
+    │   └── scripts/
+    │       ├── _common.sh           # Shared helpers (backend validation, creds)
+    │       ├── provision_rhelai.sh   # RHEL AI provisioning (AWS + Azure)
+    │       ├── provision_snc.sh     # OpenShift SNC provisioning (AWS only)
+    │       ├── destroy.sh           # Tear down provisioned resources
+    │       └── check_status.sh      # Query Pulumi state for stack status
+    ├── gitlab-branch-manager/
+    │   ├── SKILL.md             # GitLab branch creation and protection skill
+    │       └── create_and_protect_branch.sh  # Branch creation + protection
     └── jira-utilities/
         ├── SKILL.md             # Jira utilities skill (acli-based)
             └── scripts/
@@ -142,6 +151,11 @@ source "$SCRIPT_DIR/../common.sh"
 **kubectl** (`tools/kubectl/install.sh`)
 - Installs kubectl Kubernetes CLI
 - Used by: konflux-release skill
+- Supports: Linux x86_64, ARM64
+
+**mapt** (`tools/mapt/install.sh`)
+- Installs mapt CLI + Pulumi + all required Pulumi provider plugins
+- Used by: mapt-provisioner skill
 - Supports: Linux x86_64, ARM64
 
 **skopeo** (`tools/skopeo/install.sh`)
@@ -363,6 +377,25 @@ When a new version is released, Renovate automatically creates a PR to update th
 - Custom fields (priority, component, team, activity-type) applied via REST PATCH
 - CVE deduplication and release-date clustering via embedded jq analysis
 
+### 6. Mapt Provisioner Skill
+
+**Purpose:** Provision and manage cloud VMs and services on AWS and Azure using mapt.
+
+**Use cases:**
+- Provision RHEL AI instances with GPU support (CUDA/ROCm)
+- Use spot instances for cost-effective testing
+- Destroy provisioned resources with state cleanup
+- Check stack status and retrieve connection details
+- List available RHEL AI versions on AWS and Azure
+
+**Key features:**
+- Natural language intent mapping (user says "spin up RHEL AI on Azure with spot", skill handles the rest)
+- Automatic RHEL AI version discovery via `mapt <aws|azure> rhel-ai list-versions`
+- Stable-over-EA version preference with hard stop on EA-only scenarios
+- Spot eviction tolerance defaults tuned for GPU testing workloads
+- Pulumi state backend enforcement to prevent orphaned resources
+- mapt + Pulumi + provider plugins auto-installed via `tools/mapt/install.sh`
+
 ## Prerequisites
 
 Each skill has its own dependencies:
@@ -394,6 +427,13 @@ Each skill has its own dependencies:
 - `JIRA_SITE` - Atlassian site hostname (e.g., `yourorg.atlassian.net` — no `https://` prefix)
 - `JIRA_TOKEN` - API token from Atlassian account settings → Security → API tokens
 - `JIRA_EMAIL` - Your Atlassian account email
+
+**Mapt Provisioner Skill:**
+- `mapt` - Installed automatically via `tools/mapt/install.sh`
+- `MAPT_BACKEND_URL` - Pulumi state backend (s3:// or azblob://)
+- AWS targets: `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` (or `AWS_PROFILE`), `AWS_DEFAULT_REGION`
+- Azure targets: `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`, `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`
+- Azure blob backend: `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY`
 
 ## Installation
 
@@ -742,3 +782,5 @@ Apache License 2.0 - See LICENSE file for details.
 ## Author
 
 Claudio (v0.1.0)
+
+**Knowledge Graph:** A graphify graph exists at `graphify-out/`. Use `/graphify query "<question>"` for codebase questions — the graph is faster than reading files.

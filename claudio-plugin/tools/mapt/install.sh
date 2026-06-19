@@ -25,7 +25,7 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 
 # renovate: datasource=github-releases depName=redhat-developer/mapt
-MAPT_VERSION="0.14.1"
+MAPT_VERSION="0.14.2"
 
 # renovate: datasource=github-releases depName=pulumi/pulumi
 PULUMI_VERSION="3.234.0"

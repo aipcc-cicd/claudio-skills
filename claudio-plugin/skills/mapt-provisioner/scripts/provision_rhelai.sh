@@ -36,7 +36,7 @@ usage() {
     echo "Options:"
     echo "  --provider              Cloud provider: aws or azure (required)"
     echo "  --project-name          Stack identifier (default: auto-generated)"
-    echo "  --version               RHELAI version (azure: auto-discovered; aws: mapt default)"
+    echo "  --version               RHELAI version (auto-discovered for both aws and azure)"
     echo "  --cpus                  Number of CPUs"
     echo "  --memory                Memory in GiB"
     echo "  --gpus                  Number of GPUs"
@@ -87,11 +87,43 @@ fi
 if [[ "$PROVIDER" == "azure" && -z "$VERSION" ]]; then
     echo "Discovering latest RHEL AI version in Azure gallery..."
     ACCEL_ARG="${ACCELERATOR:-cuda}"
-    VERSION=$("$SCRIPT_DIR/get_azure_rhelai_version.sh" --accelerator "$ACCEL_ARG")
+    VERSIONS=$(mapt azure rhel-ai list-versions --accelerator "$ACCEL_ARG")
+    if [[ -z "${VERSIONS//[[:space:]]/}" ]]; then
+        echo "ERROR: no Azure RHEL AI versions returned for accelerator '${ACCEL_ARG}'." >&2
+        exit 1
+    fi
+    # Prefer stable (non-EA); fall back to EA only if no stable exists.
+    STABLE=$(echo "$VERSIONS" | { grep -v "\-ea" || true; } | tail -1)
+    VERSION="${STABLE:-$(echo "$VERSIONS" | tail -1)}"
     echo "  Found version: $VERSION"
     if [[ "$VERSION" == *"-ea"* ]]; then
         echo "" >&2
         echo "ERROR: Only Early Access (EA) versions are available for accelerator '${ACCEL_ARG}' in the gallery." >&2
+        echo "  Discovered version: $VERSION" >&2
+        echo "" >&2
+        echo "  EA versions are pre-release and may cause failures. Options:" >&2
+        echo "    1. Use a different accelerator: --accelerator rocm" >&2
+        echo "    2. Proceed explicitly: --version $VERSION --accelerator $ACCEL_ARG" >&2
+        exit 1
+    fi
+fi
+
+# For AWS, discover the latest available AMI version when not specified
+if [[ "$PROVIDER" == "aws" && -z "$VERSION" ]]; then
+    echo "Discovering latest RHEL AI version in AWS..."
+    ACCEL_ARG="${ACCELERATOR:-cuda}"
+    VERSIONS=$(mapt aws rhel-ai list-versions --accelerator "$ACCEL_ARG")
+    if [[ -z "${VERSIONS//[[:space:]]/}" ]]; then
+        echo "ERROR: no AWS RHEL AI versions returned for accelerator '${ACCEL_ARG}'." >&2
+        exit 1
+    fi
+    # Prefer stable (non-EA); fall back to EA only if no stable exists.
+    STABLE=$(echo "$VERSIONS" | { grep -v "\-ea" || true; } | tail -1)
+    VERSION="${STABLE:-$(echo "$VERSIONS" | tail -1)}"
+    echo "  Found version: $VERSION"
+    if [[ "$VERSION" == *"-ea"* ]]; then
+        echo "" >&2
+        echo "ERROR: Only Early Access (EA) versions are available for accelerator '${ACCEL_ARG}' in AWS." >&2
         echo "  Discovered version: $VERSION" >&2
         echo "" >&2
         echo "  EA versions are pre-release and may cause failures. Options:" >&2

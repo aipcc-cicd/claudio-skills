@@ -23,7 +23,7 @@ Users will ask in natural language — extract the intent and map it to script f
 | "tag it X=Y" / "tags X=Y,A=B" | `--tags X=Y,A=B` |
 | "store state in s3://..." / "backend s3://..." | set `MAPT_BACKEND_URL=s3://...` |
 | "destroy it" / "tear it down" / "clean up" | `destroy.sh` |
-| "what versions are available?" / "list images" | `get_azure_rhelai_version.sh --list` |
+| "what versions are available?" / "list images" | `mapt <aws\|azure> rhel-ai list-versions --accelerator <acc>` |
 | "check status" / "is it up?" | `check_status.sh` |
 | "connect to it" / "SSH in" / "run X on it" | SSH directly using conn-details |
 
@@ -60,7 +60,6 @@ Before running any provisioning script, verify the required environment variable
 | AWS | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`, or `AWS_PROFILE` |
 | Azure | `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`, `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET` (mapt maps these to `AZURE_*` internally via `setAZIdentityEnvs()`) |
 | Azure (azblob backend) | `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY` |
-| Azure RHELAI (version auto-discovery) | `AZURE_GALLERY_RESOURCE_GROUP` — resource group mapt uses for image lookups; required when `--version` is not passed |
 | SNC (additionally) | `PULL_SECRET_FILE` (path to file from https://console.redhat.com/openshift/create/local) |
 
 If `MAPT_BACKEND_URL` is not set, **stop and explain the orphaned-resource risk**. Do NOT proceed.
@@ -78,7 +77,7 @@ OpenShift SNC is AWS only — mapt does not support Azure for SNC.
 
 | Option | Purpose |
 |--------|---------|
-| `--version` | RHELAI version (default: 3.0.0) |
+| `--version` | RHELAI version (auto-discovered if omitted; specify manually if discovery fails) |
 | `--cpus`, `--memory` | Instance size |
 | `--gpus` | Number of GPUs |
 | `--accelerator` | GPU type: `cuda` or `rocm` (mapt default: cuda) |

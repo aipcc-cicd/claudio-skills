@@ -14,7 +14,6 @@
 #   ARM_CLIENT_SECRET       - Azure credential (for Azure targets)
 #   AZURE_STORAGE_ACCOUNT        - Azure storage account name (for azblob state backend)
 #   AZURE_STORAGE_KEY            - Azure storage account key (for azblob state backend)
-#   AZURE_GALLERY_RESOURCE_GROUP - Resource group mapt uses for image lookups (for Azure version auto-discovery)
 #   PULL_SECRET_FILE             - Path to OpenShift pull secret (for SNC targets)
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
