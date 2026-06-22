@@ -24,6 +24,7 @@ PROFILE=""
 ARCH=""
 TAGS=""
 SPOT=false
+SPOT_EVICTION_TOLERANCE=""
 CONN_DETAILS_OUTPUT=""
 
 usage() {
@@ -38,6 +39,7 @@ usage() {
     echo "  --arch                  Architecture: x86_64 or arm64 (mapt default: x86_64)"
     echo "  --tags                  Key=value tags for cost attribution (e.g. team=myteam,env=dev)"
     echo "  --spot                  Use spot instances"
+    echo "  --spot-eviction-tolerance   Spot tolerance: lowest, low, medium, high, highest (default: highest when --spot)"
     echo "  --conn-details-output   Path for connection details (default: /tmp/mapt-conn-details)"
     exit 1
 }
@@ -51,6 +53,7 @@ while [[ $# -gt 0 ]]; do
         --arch) require_arg "$1" "${2:-}"; ARCH="$2"; shift 2 ;;
         --tags) require_arg "$1" "${2:-}"; TAGS="$2"; shift 2 ;;
         --spot) SPOT=true; shift ;;
+        --spot-eviction-tolerance) require_arg "$1" "${2:-}"; SPOT_EVICTION_TOLERANCE="$2"; shift 2 ;;
         --conn-details-output) require_arg "$1" "${2:-}"; CONN_DETAILS_OUTPUT="$2"; shift 2 ;;
         *) echo "ERROR: Unknown option: $1" >&2; usage ;;
     esac
@@ -59,6 +62,10 @@ done
 validate_backend_url
 validate_aws_credentials
 validate_pull_secret
+
+if [[ "$SPOT" = true && -z "$SPOT_EVICTION_TOLERANCE" ]]; then
+    SPOT_EVICTION_TOLERANCE="highest"
+fi
 
 if [[ -z "$PROJECT_NAME" ]]; then
     PROJECT_NAME=$(generate_project_name "snc")
@@ -84,6 +91,7 @@ CMD=(mapt aws openshift-snc create
 [[ -n "$ARCH" ]] && CMD+=(--arch "$ARCH")
 [[ -n "$TAGS" ]] && CMD+=(--tags "$TAGS")
 [[ "$SPOT" = true ]] && CMD+=(--spot)
+[[ -n "$SPOT_EVICTION_TOLERANCE" ]] && CMD+=(--spot-eviction-tolerance "$SPOT_EVICTION_TOLERANCE")
 
 echo "  Command:       ${CMD[*]//$MAPT_BACKEND_URL/[configured]}"
 echo ""
