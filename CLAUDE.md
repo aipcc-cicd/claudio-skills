@@ -8,7 +8,7 @@ This repository contains **Claudio Skills Plugin** - a Claude Code plugin that e
 
 This plugin enables Claude Code to:
 
-- **Provision and manage cloud infrastructure** using mapt for AWS and Azure (RHEL AI VMs, spot instances, GPU workloads)
+- **Provision and manage cloud infrastructure** using mapt (RHEL AI on AWS/Azure, OpenShift SNC on AWS, spot instances, GPU workloads)
 - **Analyze GitLab CI/CD job failures** using structured scripts for pipeline debugging
 - **Orchestrate Konflux production releases** with self-contained stage-to-production workflows
 - **Troubleshoot and analyze AWS CloudWatch Logs** for application debugging and monitoring
@@ -383,6 +383,7 @@ When a new version is released, Renovate automatically creates a PR to update th
 
 **Use cases:**
 - Provision RHEL AI instances with GPU support (CUDA/ROCm)
+- Provision OpenShift SNC clusters with AI/NVIDIA profiles (AWS only)
 - Use spot instances for cost-effective testing
 - Destroy provisioned resources with state cleanup
 - Check stack status and retrieve connection details
@@ -392,7 +393,8 @@ When a new version is released, Renovate automatically creates a PR to update th
 - Natural language intent mapping (user says "spin up RHEL AI on Azure with spot", skill handles the rest)
 - Automatic RHEL AI version discovery via `mapt <aws|azure> rhel-ai list-versions`
 - Stable-over-EA version preference with hard stop on EA-only scenarios
-- Spot eviction tolerance defaults tuned for GPU testing workloads
+- OpenShift SNC with profile support (ai, nvidia, serverless, servicemesh, virtualization)
+- Spot eviction tolerance defaults to highest for both RHEL AI and SNC
 - Pulumi state backend enforcement to prevent orphaned resources
 - mapt + Pulumi + provider plugins auto-installed via `tools/mapt/install.sh`
 
