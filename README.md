@@ -17,6 +17,7 @@ Claudio Skills Plugin provides five production-ready skills designed to streamli
 - **Slack Utilities** - Search messages, post updates, and interact with Slack workspaces
 - **GitLab Branch Management** - Create and protect GitLab branches with configurable protection rules
 - **Jira Utilities** - Manage Jira issues with JQL search, create/update issues, link issues, and fetch sprint info
+- **Mapt Provisioner** - Provision and manage cloud infrastructure using mapt (RHEL AI on AWS/Azure, OpenShift SNC on AWS, spot instances, GPU workloads)
 
 ## Skills
 
@@ -115,7 +116,33 @@ Disclaimer, the first time you reuse those Tokens you will probably be signed of
 - JSON and human-readable output
 - Compatible with bash 3.2+ (macOS, RHEL, Ubuntu, Alpine)
 
-### 6. Jira Utilities Skill
+### 6. Mapt Provisioner Skill
+
+Provision and manage cloud VMs and services on AWS and Azure using [mapt](https://github.com/redhat-developer/mapt).
+
+**Use Cases:**
+- Provision RHEL AI instances with GPU support (CUDA/ROCm)
+- Provision OpenShift SNC clusters with AI/NVIDIA profiles (AWS only)
+- Use spot instances for cost-effective testing
+- Destroy provisioned resources with state cleanup
+- Check stack status and retrieve connection details
+- List available RHEL AI versions on AWS and Azure
+
+**Key Features:**
+- Natural language intent mapping
+- Automatic RHEL AI version discovery via `mapt list-versions`
+- OpenShift SNC with profile support (ai, nvidia, serverless, servicemesh, virtualization)
+- Spot eviction tolerance defaults to highest for both RHEL AI and SNC
+- Pulumi state backend enforcement to prevent orphaned resources
+- mapt + Pulumi + provider plugins auto-installed via `tools/mapt/install.sh`
+
+**Prerequisites:**
+- `MAPT_BACKEND_URL` - Pulumi state backend (s3:// or azblob://)
+- AWS: `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` (or `AWS_PROFILE`), `AWS_DEFAULT_REGION`
+- Azure: `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`, `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`
+- SNC: `PULL_SECRET_FILE` (from [console.redhat.com/openshift/downloads](https://console.redhat.com/openshift/downloads))
+
+### 7. Jira Utilities Skill
 
 **Use Cases:**
 - Fetch a single issue by key
@@ -156,6 +183,7 @@ Each skill manages its own dependencies through installer scripts in `claudio-pl
 | Slack Utilities | `curl`, `jq`, `python3` + requests | `jq`, requests |
 | GitLab Branch Manager | `glab`, `jq` | `jq` only |
 | Jira Utilities | `python3` + requests | requests |
+| Mapt Provisioner | `mapt`, `pulumi` | Both (via `tools/mapt/install.sh`) |
 
 **Authentication:**
 - GitLab: Authenticate with `glab auth login` before using (required for GitLab Job Analyzer, GitLab Branch Manager, and Konflux Release)
@@ -289,10 +317,13 @@ claudio-plugin/
     ├── slack-utilities/
     │   ├── SKILL.md             # Slack Web API skill
     │   └── scripts/             # Slack interaction scripts
-    └── gitlab-branch-manager/
-        ├── SKILL.md             # GitLab branch creation and protection skill
-        └── scripts/
-            └── create_and_protect_branch.sh
+    ├── gitlab-branch-manager/
+    │   ├── SKILL.md             # GitLab branch creation and protection skill
+    │   └── scripts/
+    │       └── create_and_protect_branch.sh
+    ├── mapt-provisioner/
+    │   ├── SKILL.md             # Cloud infrastructure provisioning skill
+    │   └── scripts/             # Provisioning, destroy, and status scripts
     └── jira-utilities/
         ├── SKILL.md             # Jira REST API skill
         └── scripts/
@@ -313,6 +344,7 @@ The `claudio-plugin/tools/` directory provides centralized installation scripts 
 - `kubectl/install.sh` - kubectl Kubernetes CLI installer
 - `python/` - Python package installers (pip-based requirements.txt files)
 - `skopeo/install.sh` - skopeo container image inspector installer
+- `mapt/install.sh` - mapt CLI + Pulumi + provider plugins installer
 
 **Adding New Tools:**
 
@@ -364,6 +396,7 @@ Each skill includes its own test scenarios. Run skill-specific scripts directly 
 - [Slack Utilities Skill](claudio-plugin/skills/slack-utilities/SKILL.md)
 - [GitLab Branch Manager Skill](claudio-plugin/skills/gitlab-branch-manager/SKILL.md)
 - [Jira Utilities Skill](claudio-plugin/skills/jira-utilities/SKILL.md)
+- [Mapt Provisioner Skill](claudio-plugin/skills/mapt-provisioner/SKILL.md)
 
 ## Claude Code Permissions
 
@@ -382,6 +415,7 @@ When using this plugin you typically want to allow skill scripts to run without 
       "Skill(claudio-plugin:jira-sprint-manager)",
       "Skill(claudio-plugin:jira-cve-tracker)",
       "Skill(claudio-plugin:jira-gap-audit)",
+      "Skill(claudio-plugin:mapt-provisioner)",
       "Bash(/path/to/claudio-skills/**)",
       "Bash(mempalace*)",
       "Read(/home/$USER/.claude/**)"
