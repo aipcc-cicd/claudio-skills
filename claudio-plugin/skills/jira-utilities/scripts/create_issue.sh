@@ -18,6 +18,8 @@
 #   --component c1,c2     Comma-separated component names
 #   --team UUID           Team UUID for customfield_10001 (not display name)
 #   --epic KEY            Parent epic key (e.g., PROJ-42)
+#   --epic-link-field ID  Custom field ID for epic link (used with --epic)
+#   --security NAME       Security level name (e.g., "Red Hat Employee")
 #   --activity-type TYPE  One of: "Tech Debt & Quality" | "New Features" | "Learning & Enablement"
 #
 # Output: JSON with the created issue key
@@ -36,6 +38,8 @@ ASSIGNEE=""
 COMPONENT=""
 TEAM=""
 EPIC=""
+EPIC_LINK_FIELD_ID=""
+SECURITY=""
 ACTIVITY_TYPE=""
 
 if [[ $# -lt 2 ]]; then
@@ -56,6 +60,8 @@ while [[ $# -gt 0 ]]; do
         --component)     COMPONENT="$2";      shift 2 ;;
         --team)          TEAM="$2";           shift 2 ;;
         --epic)          EPIC="$2";           shift 2 ;;
+        --epic-link-field) EPIC_LINK_FIELD_ID="$2"; shift 2 ;;
+        --security)      SECURITY="$2";       shift 2 ;;
         --activity-type) ACTIVITY_TYPE="$2";  shift 2 ;;
         *) echo "ERROR: Unknown option: $1" >&2; exit 1 ;;
     esac
@@ -93,18 +99,29 @@ if [[ -n "$DESCRIPTION" ]]; then
     JSON=$(echo "$JSON" | jq --argjson v "$ADF" '. + {description: $v}')
 fi
 [[ -n "$ASSIGNEE" ]]    && JSON=$(echo "$JSON" | jq --arg v "$ASSIGNEE"    '. + {assignee: $v}')
-[[ -n "$EPIC" ]]        && JSON=$(echo "$JSON" | jq --arg v "$EPIC"        '. + {parentIssueId: $v}')
+
+# ---- additionalAttributes for fields acli does not expose as flags ----
+EXTRA="{}"
+
+if [[ -n "$EPIC" ]]; then
+    if [[ -n "$EPIC_LINK_FIELD_ID" ]]; then
+        EXTRA=$(echo "$EXTRA" | jq --arg field "$EPIC_LINK_FIELD_ID" --arg v "$EPIC" \
+            '. + {($field): $v}')
+    else
+        JSON=$(echo "$JSON" | jq --arg v "$EPIC" '. + {parentIssueId: $v}')
+    fi
+fi
 
 if [[ -n "$LABELS" ]]; then
     LABELS_JSON=$(printf '%s' "$LABELS" | jq -R 'split(",") | map(ltrimstr(" ") | rtrimstr(" ")) | map(select(. != ""))')
     JSON=$(echo "$JSON" | jq --argjson v "$LABELS_JSON" '. + {label: $v}')
 fi
 
-# ---- additionalAttributes for fields acli does not expose as flags ----
-EXTRA="{}"
-
 [[ -n "$PRIORITY" ]] && EXTRA=$(echo "$EXTRA" | jq --arg v "$PRIORITY" \
     '. + {priority: {name: $v}}')
+
+[[ -n "$SECURITY" ]] && EXTRA=$(echo "$EXTRA" | jq --arg v "$SECURITY" \
+    '. + {security: {name: $v}}')
 
 if [[ -n "$COMPONENT" ]]; then
     COMP_JSON=$(printf '%s' "$COMPONENT" | jq -R 'split(",") | map(ltrimstr(" ") | rtrimstr(" ")) | map(select(. != "")) | map({name: .})')
