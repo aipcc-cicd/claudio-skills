@@ -64,12 +64,32 @@ ensure_auth
 JSON="{}"
 
 [[ -n "$SUMMARY" ]]     && JSON=$(echo "$JSON" | jq --arg v "$SUMMARY"     '. + {summary: $v}')
-[[ -n "$DESCRIPTION" ]] && JSON=$(echo "$JSON" | jq --arg v "$DESCRIPTION" '. + {description: $v}')
+if [[ -n "$DESCRIPTION" ]]; then
+    ADF=$(jq -n --arg text "$DESCRIPTION" '{
+        type: "doc",
+        version: 1,
+        content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: $text }]
+        }]
+    }')
+    JSON=$(echo "$JSON" | jq --argjson v "$ADF" '. + {description: $v}')
+fi
 [[ -n "$ASSIGNEE" ]]    && JSON=$(echo "$JSON" | jq --arg v "$ASSIGNEE"    '. + {assignee: $v}')
 
 if [[ -n "$LABELS" ]]; then
-    LABELS_JSON=$(printf '%s' "$LABELS" | jq -R 'split(",") | map(ltrimstr(" ") | rtrimstr(" ")) | map(select(. != ""))')
-    JSON=$(echo "$JSON" | jq --argjson v "$LABELS_JSON" '. + {labels: $v}')
+    DESIRED_JSON=$(printf '%s' "$LABELS" | jq -R 'split(",") | map(ltrimstr(" ") | rtrimstr(" ")) | map(select(. != ""))')
+    # Fetch current labels to compute add/remove diff (acli uses labelsToAdd/labelsToRemove)
+    CURRENT_RAW=$(acli jira workitem view "$KEY" --fields labels --json 2>/dev/null || echo "{}")
+    CURRENT_JSON=$(printf '%s' "$CURRENT_RAW" | jq -r 'if type == "array" then (.[0].fields.labels // []) else (.fields.labels // []) end' 2>/dev/null || echo "[]")
+    LABELS_TO_ADD=$(jq -n --argjson d "$DESIRED_JSON" --argjson c "$CURRENT_JSON" \
+        '[$d[] | select(. as $l | $c | index($l) | not)]')
+    LABELS_TO_REMOVE=$(jq -n --argjson d "$DESIRED_JSON" --argjson c "$CURRENT_JSON" \
+        '[$c[] | select(. as $l | $d | index($l) | not)]')
+    [[ $(printf '%s' "$LABELS_TO_ADD"    | jq 'length') -gt 0 ]] && \
+        JSON=$(echo "$JSON" | jq --argjson v "$LABELS_TO_ADD"    '. + {labelsToAdd: $v}')
+    [[ $(printf '%s' "$LABELS_TO_REMOVE" | jq 'length') -gt 0 ]] && \
+        JSON=$(echo "$JSON" | jq --argjson v "$LABELS_TO_REMOVE" '. + {labelsToRemove: $v}')
 fi
 
 # ---- additionalAttributes for priority (not exposed by acli edit) ----
@@ -78,12 +98,14 @@ if [[ -n "$PRIORITY" ]]; then
         '. + {additionalAttributes: {priority: {name: $v}}}')
 fi
 
-# ---- Write temp file and edit via acli ----
+# ---- Include key in JSON (acli requires issues array, not key field) ----
+JSON=$(echo "$JSON" | jq --arg k "$KEY" '. + {issues: [$k]}')
+
 TMPFILE=$(make_tmp_json "$JSON")
-trap "rm -f $TMPFILE" EXIT
+trap 'rm -f "$TMPFILE"' EXIT
 
 echo "Updating $KEY..." >&2
-acli jira workitem edit --key "$KEY" --from-json "$TMPFILE" --json --yes
+acli jira workitem edit --from-json "$TMPFILE" --json --yes
 
 echo "Updated: $KEY" >&2
 echo "{\"updated\": \"$KEY\"}"

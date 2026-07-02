@@ -97,8 +97,8 @@ fi
 # Bug 3: acli rejects --fields entirely in table mode; skip it with a warning.
 if [[ -n "$FIELDS" && "$FORMAT" != "table" ]]; then
     DATE_FIELDS_PATTERN="^(created|updated|resolutiondate|updateddate|createddate)$"
-    SAFE_FIELDS=$(echo "$FIELDS" | tr ',' '\n' | grep -Eiv "$DATE_FIELDS_PATTERN" | paste -sd ',' -)
-    DATE_ONLY_FIELDS=$(echo "$FIELDS" | tr ',' '\n' | grep -Ei "$DATE_FIELDS_PATTERN" | paste -sd ',' -)
+    SAFE_FIELDS=$(echo "$FIELDS" | tr ',' '\n' | { grep -Eiv "$DATE_FIELDS_PATTERN" || true; } | paste -sd ',' -)
+    DATE_ONLY_FIELDS=$(echo "$FIELDS" | tr ',' '\n' | { grep -Ei "$DATE_FIELDS_PATTERN" || true; } | paste -sd ',' -)
     if [[ -n "$DATE_ONLY_FIELDS" ]]; then
         echo "WARN: acli does not support --fields $DATE_ONLY_FIELDS; timestamps are available in the JSON payload via .fields.created / .fields.updated." >&2
     fi

@@ -114,7 +114,7 @@ fi
 
 if [[ -n "$LABELS" ]]; then
     LABELS_JSON=$(printf '%s' "$LABELS" | jq -R 'split(",") | map(ltrimstr(" ") | rtrimstr(" ")) | map(select(. != ""))')
-    JSON=$(echo "$JSON" | jq --argjson v "$LABELS_JSON" '. + {label: $v}')
+    JSON=$(echo "$JSON" | jq --argjson v "$LABELS_JSON" '. + {labels: $v}')
 fi
 
 [[ -n "$PRIORITY" ]] && EXTRA=$(echo "$EXTRA" | jq --arg v "$PRIORITY" \
