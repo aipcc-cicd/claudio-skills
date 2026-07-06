@@ -140,7 +140,7 @@ fi
 
 # ---- Write temp file and create via acli ----
 TMPFILE=$(make_tmp_json "$JSON")
-trap "rm -f $TMPFILE" EXIT
+trap 'rm -f "$TMPFILE"' EXIT
 
 echo "Creating $ISSUETYPE in $PROJECT: '$SUMMARY'..." >&2
 acli jira workitem create --from-json "$TMPFILE" --json
