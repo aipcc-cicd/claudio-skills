@@ -14,7 +14,8 @@
 #   --description TEXT  New description
 #   --priority NAME     New priority (e.g., Critical, High, Medium, Low)
 #   --assignee ID       New assignee account ID or email
-#   --labels l1,l2      New labels, comma-separated (replaces existing)
+#   --labels l1,l2      New labels, comma-separated (diffs against current;
+#                       adds missing, removes unlisted)
 #
 # Output: JSON {"updated": "<issue_key>"}
 # Exit codes: 0=success, 1=invalid params, 2=API error, 4=auth error
