@@ -53,7 +53,7 @@ jira_site_url() {
 
 # Escape a value for embedding in a JQL string literal (doubles embedded double-quotes).
 # Usage: escaped=$(jql_escape "value with \"quotes\"")
-jql_escape() { printf '%s' "${1//\"/\\\"}"; }
+jql_escape() { local s="${1//\\/\\\\}"; printf '%s' "${s//\"/\\\"}"; }
 
 # Make a Jira REST API call.
 # Usage: jira_rest GET|POST|PUT|DELETE <path> [json_body]

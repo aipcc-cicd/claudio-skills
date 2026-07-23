@@ -18,6 +18,7 @@ Claudio Skills Plugin provides five production-ready skills designed to streamli
 - **GitLab Branch Management** - Create and protect GitLab branches with configurable protection rules
 - **Jira Utilities** - Manage Jira issues with JQL search, create/update issues, link issues, and fetch sprint info
 - **Mapt Provisioner** - Provision and manage cloud infrastructure using mapt (RHEL AI on AWS/Azure, OpenShift SNC on AWS, spot instances, GPU workloads)
+- **Package Request** - Submit package onboarding requests, creating Jira epics and triggering onboarding pipelines
 
 ## Skills
 
@@ -163,6 +164,24 @@ Provision and manage cloud VMs and services on AWS and Azure using [mapt](https:
 - `JIRA_TOKEN` - API token (Cloud) or Personal Access Token (Data Center)
 - `JIRA_EMAIL` - User email (Cloud auth only)
 - `JIRA_AUTH_TYPE` - `cloud` or `datacenter` (default: `cloud`)
+
+### 8. Package Request Skill
+
+Submit package onboarding requests — creates Jira epics and triggers the onboarding pipeline.
+
+**Use Cases:**
+- Request a new Python package for inclusion in RHEL AI / RHAIIS builds
+- Guided collection of required fields (package name, team, justification, timeline)
+- Handle production-repo warnings and duplicate request detection
+
+**Key Features:**
+- Conversational flow that collects fields one at a time or all at once
+- Validates packages on PyPI, checks for duplicates, warns on production repo conflicts
+- Triggers the package-onboarding GitLab pipeline automatically
+
+**Prerequisites:**
+- `curl`, `jq`, `glab`
+- `JIRA_SITE`, `JIRA_TOKEN`, `JIRA_EMAIL`, `GITLAB_TOKEN`
 
 ## Installation
 ### Prerequisites
