@@ -10,7 +10,6 @@ This plugin enables Claude Code to:
 
 - **Provision and manage cloud infrastructure** using mapt (RHEL AI on AWS/Azure, OpenShift SNC on AWS, spot instances, GPU workloads)
 - **Analyze GitLab CI/CD job failures** using structured scripts for pipeline debugging
-- **Orchestrate Konflux production releases** with self-contained stage-to-production workflows
 - **Troubleshoot and analyze AWS CloudWatch Logs** for application debugging and monitoring
 - **Create and protect GitLab branches** for release workflows and branch management
 - **Interact with Slack workspaces** for message search, posting, and conversation management
@@ -39,7 +38,6 @@ claudio-plugin/
 │   │   └── install.sh           # skopeo installer
 │   └── python/
 │       ├── install.sh           # Python pip installer
-│       ├── konflux-release-requirements.txt  # PyYAML
 │       └── slack-requirements.txt            # requests
 └── skills/
     ├── gitlab-job-analyzer/
@@ -51,10 +49,6 @@ claudio-plugin/
     │       ├── compare_job_logs.sh      # Compare job runs
     │       ├── analyze_dependencies.sh  # Dependency graph analysis
     │       └── extract_errors.sh        # Error categorization
-    ├── konflux-release/
-    │   ├── SKILL.md             # Konflux release workflow skill
-    │   └── scripts/
-    │       └── generate_release_yaml.py  # Release YAML generator
     ├── aws-log-analyzer/
     │   ├── SKILL.md             # AWS CloudWatch Logs troubleshooting skill
     │   └── scripts/
@@ -140,7 +134,7 @@ source "$SCRIPT_DIR/../common.sh"
 
 **glab** (`tools/glab/install.sh`)
 - Installs glab GitLab CLI
-- Used by: gitlab, gitlab-job-analyzer, konflux-release skills
+- Used by: gitlab, gitlab-job-analyzer skills
 - Supports: Linux x86_64, ARM64
 
 **jq** (`tools/jq/install.sh`)
@@ -150,7 +144,7 @@ source "$SCRIPT_DIR/../common.sh"
 
 **kubectl** (`tools/kubectl/install.sh`)
 - Installs kubectl Kubernetes CLI
-- Used by: konflux-release skill
+- Used by: konflux-its-analyzer skill
 - Supports: Linux x86_64, ARM64
 
 **mapt** (`tools/mapt/install.sh`)
@@ -160,7 +154,7 @@ source "$SCRIPT_DIR/../common.sh"
 
 **skopeo** (`tools/skopeo/install.sh`)
 - Installs skopeo via system package manager (dnf/apt/apk)
-- Used by: konflux-release skill
+- Used by: image inspection in Konflux workflows
 - Supports: Linux (RHEL, Fedora, Ubuntu, Debian, Alpine)
 
 ### Adding New Tools
@@ -307,26 +301,7 @@ When a new version is released, Renovate automatically creates a PR to update th
 - Error pattern recognition and categorization
 - Uses `glab` CLI directly through structured scripts
 
-### 2. Konflux Release Skill
-
-**Purpose:** Create production releases on the Konflux platform with a self-contained stage-to-production workflow.
-
-**Use cases:**
-- Create production releases from successful stage releases
-- Query Konflux Release, Snapshot, and ReleasePlan resources
-- Generate release YAMLs with release notes
-- Orchestrate multi-component releases
-- Follow stage-to-production deployment workflows
-
-**Key features:**
-- Self-contained skill with all commands inline (kubectl, glab, skopeo)
-- Supports manual mode and config-driven mode with external product configs
-- Automates stage-to-production release pattern
-- Applies release notes templates with version/variant substitution
-- Includes Python script for deterministic YAML generation
-- Auto-increments release sequence numbers
-
-### 3. AWS Log Analyzer Skill
+### 2. AWS Log Analyzer Skill
 
 **Purpose:** Troubleshoot and analyze logs from AWS CloudWatch Logs for debugging and monitoring.
 
@@ -345,7 +320,7 @@ When a new version is released, Renovate automatically creates a PR to update th
 - Pretty-printing and JSON parsing with jq
 - Helper scripts for common operations
 
-### 4. GitLab Branch Manager Skill
+### 3. GitLab Branch Manager Skill
 
 **Purpose:** Create and protect GitLab branches for release workflows and branch management.
 
@@ -360,7 +335,7 @@ When a new version is released, Renovate automatically creates a PR to update th
 - Dry-run mode for previewing actions
 - JSON and human-readable output
 
-### 5. Jira Utilities Skill
+### 4. Jira Utilities Skill
 
 **Purpose:** Manage Jira Cloud issues via the official Atlassian CLI (`acli`) and the Jira REST API v3.
 
@@ -377,7 +352,7 @@ When a new version is released, Renovate automatically creates a PR to update th
 - Custom fields (priority, component, team, activity-type) applied via REST PATCH
 - CVE deduplication and release-date clustering via embedded jq analysis
 
-### 6. Mapt Provisioner Skill
+### 5. Mapt Provisioner Skill
 
 **Purpose:** Provision and manage cloud VMs and services on AWS and Azure using mapt.
 
@@ -412,12 +387,6 @@ Each skill has its own dependencies:
 - User already authenticated
 - Optional: `jq` for JSON parsing
 
-**Konflux Release Skill:**
-- `kubectl` - Kubernetes operations
-- `python3` + `PyYAML` for YAML generation script
-- `jq` for JSON parsing
-- Optional: `glab` for tag resolution, `skopeo` for image inspection
-
 **AWS Log Analyzer Skill:**
 - `aws` CLI - AWS CLI v2 recommended
 - User already authenticated (IAM credentials, SSO, or instance profile)
@@ -448,34 +417,10 @@ The skills follow these principles:
 1. **Tool preference:** Use native CLI commands over API calls when possible
 2. **Efficient querying:** Start with table output, drill down to specific resources
 3. **Read-only by default:** Prefer GET operations for safety
-4. **Integration:** Skills can work together or independently (e.g., Konflux Release is self-contained)
+4. **Integration:** Skills can work together or independently
 5. **Context efficiency:** Avoid dumping large JSON outputs unless necessary
 
 ## Example Workflows
-
-### Production Release Workflow (Konflux Release Skill)
-
-When a user asks to create a production release:
-
-1. **Resolve tag to commit SHA**
-   ```bash
-   glab api --method GET "projects/owner%2Frepo/repository/commits/v1.2.3" | jq -r '.id'
-   ```
-
-2. **Find stage releases by SHA**
-   ```bash
-   kubectl get releases -n namespace -l "pac.test.appstudio.openshift.io/sha=<full-sha>"
-   ```
-
-3. **Filter to successful releases**
-   - Check `.status.conditions[type=Released].status = "True"`
-
-4. **Generate production YAMLs**
-   ```bash
-   /full/path/to/generate_release_yaml.py --component my-comp --version 1.2.3 --snapshot snap-abc --release-plan my-app-prod --release-name my-comp-1-2-3-prod-1 --accelerator Variant --namespace my-ns --release-notes-template /path/to/template.yaml --release-type RHEA --output out/component-prod.yaml
-   ```
-
-5. **Deliver for review** - commit generated files and open MR (config-driven) or deliver locally (manual)
 
 ### Log Troubleshooting Workflow (AWS Log Analyzer)
 
