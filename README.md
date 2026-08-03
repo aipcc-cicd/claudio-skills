@@ -7,12 +7,11 @@ A Claude Code plugin that extends Claude with specialized skills for DevOps and 
 
 ## Overview
 
-Claudio Skills Plugin provides five production-ready skills designed to streamline interactions with GitLab CI/CD, Konflux, AWS CloudWatch Logs, Slack, GitLab branch management, and Jira. Each skill provides Claude Code with domain-specific capabilities, allowing you to leverage Claude as an intelligent assistant for complex DevOps tasks.
+Claudio Skills Plugin provides production-ready skills designed to streamline interactions with GitLab CI/CD, Konflux, AWS CloudWatch Logs, Slack, GitLab branch management, and Jira. Each skill provides Claude Code with domain-specific capabilities, allowing you to leverage Claude as an intelligent assistant for complex DevOps tasks.
 
 ## Features
 
 - **CI/CD Job Analysis** - Analyze GitLab pipeline failures, parse logs, and identify error patterns
-- **Konflux Release Orchestration** - Automate stage-to-production release workflows on the Konflux platform
 - **AWS Log Analysis** - Troubleshoot and analyze CloudWatch Logs with advanced querying
 - **Slack Utilities** - Search messages, post updates, and interact with Slack workspaces
 - **GitLab Branch Management** - Create and protect GitLab branches with configurable protection rules
@@ -38,24 +37,7 @@ Analyze GitLab CI/CD job failures with structured scripts and error pattern reco
 - Error pattern recognition and categorization
 - Uses `glab` CLI directly through structured scripts
 
-### 2. Konflux Release Skill
-
-Work with Konflux - a build and release platform based on OpenShift and Tekton.
-
-**Use Cases:**
-- Create production releases from successful stage releases
-- Query Konflux Release, Snapshot, and ReleasePlan resources
-- Generate release YAMLs with release notes
-- Orchestrate multi-component releases
-- Follow stage-to-production deployment workflows
-
-**Key Features:**
-- Automates stage → production release pattern
-- Deterministic YAML generation with Python scripts
-- Self-contained with inline kubectl, glab, and skopeo commands
-- Supports manual mode and config-driven mode with external product configs
-
-### 3. AWS Log Analyzer Skill
+### 2. AWS Log Analyzer Skill
 
 Troubleshoot and analyze logs from AWS CloudWatch Logs.
 
@@ -72,7 +54,7 @@ Troubleshoot and analyze logs from AWS CloudWatch Logs.
 - Multi-log-group search capabilities
 - Efficient time range handling
 
-### 4. Slack Utilities Skill
+### 3. Slack Utilities Skill
 
 Interact with Slack workspaces using the Slack Web API.
 
@@ -101,7 +83,7 @@ it should be something similar to `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/5
 
 Disclaimer, the first time you reuse those Tokens you will probably be signed off as precaution, the second time you sign in the tokens should last.
 
-### 5. GitLab Branch Manager Skill
+### 4. GitLab Branch Manager Skill
 
 **Use Cases:**
 - Create release branches from main or a specific tag/ref
@@ -116,7 +98,7 @@ Disclaimer, the first time you reuse those Tokens you will probably be signed of
 - JSON and human-readable output
 - Compatible with bash 3.2+ (macOS, RHEL, Ubuntu, Alpine)
 
-### 6. Mapt Provisioner Skill
+### 5. Mapt Provisioner Skill
 
 Provision and manage cloud VMs and services on AWS and Azure using [mapt](https://github.com/redhat-developer/mapt).
 
@@ -142,7 +124,7 @@ Provision and manage cloud VMs and services on AWS and Azure using [mapt](https:
 - Azure: `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`, `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`
 - SNC: `PULL_SECRET_FILE` (from [console.redhat.com/openshift/downloads](https://console.redhat.com/openshift/downloads))
 
-### 7. Jira Utilities Skill
+### 6. Jira Utilities Skill
 
 **Use Cases:**
 - Fetch a single issue by key
@@ -178,7 +160,6 @@ Each skill manages its own dependencies through installer scripts in `claudio-pl
 | Skill | Required Tools | Auto-Installed |
 |-------|---------------|----------------|
 | GitLab Job Analyzer | `glab`, `jq` | `jq` only |
-| Konflux Release | `kubectl`, `glab`, `skopeo`, `python3` + PyYAML, `jq` | `kubectl`, `skopeo`, `jq`, PyYAML |
 | AWS Log Analyzer | `aws` CLI v2, `jq` | Both |
 | Slack Utilities | `curl`, `jq`, `python3` + requests | `jq`, requests |
 | GitLab Branch Manager | `glab`, `jq` | `jq` only |
@@ -186,8 +167,8 @@ Each skill manages its own dependencies through installer scripts in `claudio-pl
 | Mapt Provisioner | `mapt`, `pulumi` | Both (via `tools/mapt/install.sh`) |
 
 **Authentication:**
-- GitLab: Authenticate with `glab auth login` before using (required for GitLab Job Analyzer, GitLab Branch Manager, and Konflux Release)
-- Kubernetes: Configure kubectl context with `kubectl config use-context` (required for Konflux Release)
+- GitLab: Authenticate with `glab auth login` before using (required for GitLab Job Analyzer and GitLab Branch Manager)
+- Kubernetes: Configure kubectl context with `kubectl config use-context` (required for Konflux ITS Analyzer)
 - AWS: Authenticate with AWS CLI (`aws configure`, SSO, or instance profile)
 - Jira: Set `JIRA_BASE_URL`, `JIRA_TOKEN`, and optionally `JIRA_EMAIL` / `JIRA_AUTH_TYPE` environment variables
 ### Install Plugin
@@ -211,9 +192,6 @@ Skills are invoked automatically by Claude Code when relevant to your request. Y
 # CI/CD analysis
 "Analyze failed jobs in the last 24 hours for owner/repo"
 
-# Konflux releases
-"Create a production release for tag v1.2.3 in owner/repo"
-
 # AWS log troubleshooting
 "Find errors in /aws/application/myapp from the last hour"
 
@@ -225,20 +203,6 @@ Skills are invoked automatically by Claude Code when relevant to your request. Y
 ```
 
 ### Example Workflows
-
-#### Production Release Workflow
-
-Using the Konflux Release skill:
-
-```
-"Create a production release for tag v1.2.3 in owner/repo"
-```
-
-Claude will:
-1. Resolve the tag to a commit SHA using `glab`
-2. Find successful stage releases using `kubectl`
-3. Generate production release YAMLs with the Python script
-4. Prepare release files for review (does not auto-apply)
 
 #### Log Troubleshooting Workflow
 
@@ -299,7 +263,6 @@ claudio-plugin/
 │   │   └── install.sh           # kubectl installer
 │   ├── python/
 │   │   ├── install.sh           # Python pip installer
-│   │   ├── konflux-release-requirements.txt
 │   │   └── slack-requirements.txt
 │   └── skopeo/
 │       └── install.sh           # skopeo installer
@@ -307,10 +270,6 @@ claudio-plugin/
     ├── gitlab-job-analyzer/
     │   ├── SKILL.md             # GitLab CI/CD job analysis skill
     │   └── scripts/             # Analysis scripts
-    ├── konflux-release/
-    │   ├── SKILL.md             # Konflux release workflow skill
-    │   └── scripts/
-    │       └── generate_release_yaml.py
     ├── aws-log-analyzer/
     │   ├── SKILL.md             # AWS CloudWatch Logs analysis skill
     │   └── scripts/             # Log analysis scripts
@@ -391,7 +350,6 @@ Each skill includes its own test scenarios. Run skill-specific scripts directly 
 
 **Skill-Specific Documentation:**
 - [GitLab Job Analyzer Skill](claudio-plugin/skills/gitlab-job-analyzer/SKILL.md)
-- [Konflux Release Skill](claudio-plugin/skills/konflux-release/SKILL.md)
 - [AWS Log Analyzer Skill](claudio-plugin/skills/aws-log-analyzer/SKILL.md)
 - [Slack Utilities Skill](claudio-plugin/skills/slack-utilities/SKILL.md)
 - [GitLab Branch Manager Skill](claudio-plugin/skills/gitlab-branch-manager/SKILL.md)
@@ -408,7 +366,6 @@ When using this plugin you typically want to allow skill scripts to run without 
     "allow": [
       "Skill(claudio-plugin:aws-log-analyzer)",
       "Skill(claudio-plugin:gitlab-job-analyzer)",
-      "Skill(claudio-plugin:konflux-release)",
       "Skill(claudio-plugin:slack-utilities)",
       "Skill(claudio-plugin:jira-utilities)",
       "Skill(claudio-plugin:jira-release-setup)",

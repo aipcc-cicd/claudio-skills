@@ -1,1 +1,0 @@
-../../skills/konflux-release/requirements.txt
