@@ -11,7 +11,7 @@ jobs:
     outputs:
       skills: ${{ steps.find.outputs.skills }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Discover skills with tests
         id: find
         run: |
@@ -32,7 +32,7 @@ jobs:
         skill: ${{ fromJson(needs.discover.outputs.skills) }}
     name: Test ${{ matrix.skill }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install test dependencies
         run: |
           if [ -f "${{ matrix.skill }}/requirements-test.txt" ]; then

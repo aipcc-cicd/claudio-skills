@@ -24,7 +24,7 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 # This version is tracked by Renovate for automatic updates
 # renovate: datasource=github-releases depName=astral-sh/uv
-UV_VERSION="0.11.16"
+UV_VERSION="0.12.5"
 
 # ============================================================================
 # CONFIGURATION

@@ -25,28 +25,28 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 
 # renovate: datasource=github-releases depName=redhat-developer/mapt
-MAPT_VERSION="0.14.2"
+MAPT_VERSION="0.14.4"
 
 # renovate: datasource=github-releases depName=pulumi/pulumi
-PULUMI_VERSION="3.234.0"
+PULUMI_VERSION="3.259.0"
 
 # Pulumi provider plugin versions (match mapt's oci/Containerfile)
 # renovate: datasource=github-releases depName=pulumi/pulumi-aws
-PULUMI_AWS_VERSION="7.28.0"
+PULUMI_AWS_VERSION="7.43.0"
 # renovate: datasource=github-releases depName=pulumi/pulumi-awsx
-PULUMI_AWSX_VERSION="3.5.0"
+PULUMI_AWSX_VERSION="3.8.0"
 # renovate: datasource=github-releases depName=pulumi/pulumi-azure-native
-PULUMI_AZURE_NATIVE_VERSION="3.17.0"
+PULUMI_AZURE_NATIVE_VERSION="3.26.0"
 # renovate: datasource=github-releases depName=pulumi/pulumi-command
 PULUMI_COMMAND_VERSION="1.2.1"
 # renovate: datasource=github-releases depName=pulumi/pulumi-tls
-PULUMI_TLS_VERSION="5.3.1"
+PULUMI_TLS_VERSION="5.5.1"
 # renovate: datasource=github-releases depName=pulumi/pulumi-random
-PULUMI_RANDOM_VERSION="4.19.2"
+PULUMI_RANDOM_VERSION="4.21.1"
 # renovate: datasource=github-releases depName=pulumi/pulumi-aws-native
-PULUMI_AWS_NATIVE_VERSION="1.63.0"
+PULUMI_AWS_NATIVE_VERSION="1.75.0"
 # renovate: datasource=github-releases depName=pulumi/pulumi-gitlab
-PULUMI_GITLAB_VERSION="9.11.0"
+PULUMI_GITLAB_VERSION="10.1.1"
 
 # ============================================================================
 # CONFIGURATION

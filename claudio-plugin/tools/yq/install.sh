@@ -24,7 +24,7 @@ source "$SCRIPT_DIR/../common.sh"
 # ============================================================================
 # This version is tracked by Renovate for automatic updates
 # renovate: datasource=github-releases depName=mikefarah/yq
-YQ_VERSION="4.53.3"
+YQ_VERSION="4.53.6"
 
 # ============================================================================
 # CONFIGURATION
